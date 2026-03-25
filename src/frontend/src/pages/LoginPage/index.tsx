@@ -4,6 +4,7 @@ import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 import LangflowLogo from "@/assets/LangflowLogo.svg?react";
 import { useLoginUser } from "@/controllers/API/queries/auth";
+import { useGetKeycloakConfig } from "@/controllers/API/queries/keycloak/use-get-keycloak-config";
 import { CustomLink } from "@/customization/components/custom-link";
 import { useSanitizeRedirectUrl } from "@/hooks/use-sanitize-redirect-url";
 import InputComponent from "../../components/core/parameterRenderComponent/components/inputComponent";
@@ -38,6 +39,7 @@ export default function LoginPage(): JSX.Element {
 
   const { mutate } = useLoginUser();
   const queryClient = useQueryClient();
+  const { data: keycloakConfig } = useGetKeycloakConfig();
 
   function signIn() {
     const user: LoginType = {
@@ -145,6 +147,20 @@ export default function LoginPage(): JSX.Element {
               </Button>
             </CustomLink>
           </div>
+          {keycloakConfig?.enabled && (
+            <div className="w-full">
+              <Button
+                className="w-full"
+                variant="outline"
+                type="button"
+                onClick={() => {
+                  window.location.href = "/api/v1/keycloak/login";
+                }}
+              >
+                {keycloakConfig.button_text}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </Form.Root>
