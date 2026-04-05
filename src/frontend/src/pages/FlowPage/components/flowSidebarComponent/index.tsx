@@ -47,6 +47,7 @@ import SidebarMenuButtons from "./components/sidebarFooterButtons";
 import { SidebarHeaderComponent } from "./components/sidebarHeader";
 import SidebarSegmentedNav from "./components/sidebarSegmentedNav";
 import { applyBetaFilter } from "./helpers/apply-beta-filter";
+import { applyBundleFilter } from "./helpers/apply-bundle-filter";
 import { applyComponentFilter } from "./helpers/apply-component-filter";
 import { applyEdgeFilter } from "./helpers/apply-edge-filter";
 import { applyLegacyFilter } from "./helpers/apply-legacy-filter";
@@ -368,6 +369,9 @@ export function FlowSidebarComponent({ isLoading }: FlowSidebarComponentProps) {
     if (!showLegacy) {
       filteredData = applyLegacyFilter(filteredData);
     }
+
+    // Hide components from excluded external API bundles
+    filteredData = applyBundleFilter(filteredData);
 
     return filteredData;
   }, [
