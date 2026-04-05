@@ -33,6 +33,9 @@
 - 한글 IME 자모분리 이슈 수정
 - SSO 버튼 텍스트 동적 설정
 - Get Started 템플릿 커스터마이징 (반도체 공정 도우미, 사내 문서 검색, 데이터 분석 에이전트)
+- Playground 사이드바 모드 복원 (풀스크린 자동전환 제거)
+- 외부 API 번들 제거 (사이드바 + 검색 필터), 로컬/자체호스팅 번들만 유지
+- Discord, X(Twitter) 아이콘/링크 제거
 
 ### Docker / CI
 - `docker/keycloak-sso.Dockerfile` — SSO 플러그인 포함 이미지
