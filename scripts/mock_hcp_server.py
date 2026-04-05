@@ -20,14 +20,17 @@ PROJECT_ROLES = {
     },
 }
 
+
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
 
 @app.get("/v1/projects/{project_id}/roles")
 async def get_roles(project_id: str):
     roles = PROJECT_ROLES.get(project_id, {"managers": [], "deployApprovers": [], "developers": []})
     return {"response": roles}
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=9001)
