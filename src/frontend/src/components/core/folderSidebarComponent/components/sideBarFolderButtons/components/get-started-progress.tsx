@@ -166,48 +166,6 @@ export const GetStartedProgress: FC<{
         </Button>
 
         <Button
-          data-testid="discord_joined_btn_get_started"
-          unstyled
-          className={cn(
-            "w-full",
-            isDiscordJoinedChild && "pointer-events-none",
-          )}
-          onClick={(e) => {
-            if (isDiscordJoinedChild) {
-              e.preventDefault();
-              return;
-            }
-            handleUserTrack("discord_clicked");
-          }}
-        >
-          <div
-            className={cn(
-              "flex items-center gap-2 rounded-md p-2 py-[10px] hover:bg-muted",
-              isDiscordJoinedChild && "pointer-events-none",
-            )}
-          >
-            {isDiscordJoinedChild ? (
-              <span data-testid="discord_joined_icon_get_started">
-                <IconComponent
-                  name="Check"
-                  className="h-4 w-4 text-accent-emerald-foreground"
-                />
-              </span>
-            ) : (
-              <FaDiscord className="h-4 w-4 text-[#5865F2]" />
-            )}
-            <span
-              className={cn(
-                "text-sm",
-                isDiscordJoinedChild && "text-muted-foreground line-through",
-              )}
-            >
-              Join the community
-            </span>
-          </div>
-        </Button>
-
-        <Button
           unstyled
           className={cn("w-full", hasFlows && "pointer-events-none")}
           onClick={() => setNewProjectModal(true)}
