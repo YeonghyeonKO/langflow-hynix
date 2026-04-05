@@ -34,9 +34,7 @@ export default function LoginPage(): JSX.Element {
           <div className="mb-4 w-full rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
             <p>{ERROR_MESSAGES[errorCode] ?? `로그인 오류: ${errorCode}`}</p>
             {employeeId && (
-              <p className="mt-1 text-xs text-red-500">
-                사번: {employeeId}
-              </p>
+              <p className="mt-1 text-xs text-red-500">사번: {employeeId}</p>
             )}
           </div>
         )}
