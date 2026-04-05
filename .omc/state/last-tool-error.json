@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"bash /tmp/cherry-pick-commits.sh 2>&1\",\"timeout\":120000,\"description\":\"Run cherry-pick script\"}",
-  "error": "Exit code 1\nAuto-merging src/frontend/package-lock.json\n[feat/upgrade-v1.8.3 298a143625] feat: add Keycloak SSO plugin with shared account mapping\n Date: Wed Mar 25 20:12:46 2026 +0900\n 11 files changed, 862 insertions(+)\n create mode 100644 mock_oidc_server.py\n create mode 100644 src/backend/langflow-keycloak-sso/pyproject.toml\n create mode 100644 src/backend/langflow-keycloak-sso/src/langflow_keycloak_sso/__init__.py\n create mode 100644 src/backend/langflow-keycloak-sso/src/langflow_keycloak_s...",
-  "timestamp": "2026-04-05T02:19:05.550Z",
-  "retry_count": 1
-}
