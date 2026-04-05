@@ -12,12 +12,12 @@
 |--------|------|------|
 | `main` | upstream 미러 | GitHub Sync Fork 가능 |
 | `hynix/v1.8.0` | v1.8.0 + 커스텀 | 검증 완료 |
-| `hynix/v1.8.3` | v1.8.3 + 커스텀 | 검증 전 |
+| `hynix/v1.8.3` | v1.8.3 + 커스텀 | v1.8.3-hynix-rc0 |
 | `legacy/v1.8.0-hynix` | 이전 main 백업 | 아카이브 |
 
 ## 커스텀 패치 목록
 
-커스텀 커밋 확인: `git log v1.8.3..hynix/v1.8.3 --oneline`
+커스텀 커밋 확인: `git log v1.8.3..hynix/v1.8.3 --oneline` (42 commits)
 
 ### Keycloak SSO
 - Keycloak SSO 플러그인 (`src/backend/langflow-keycloak-sso/`)
