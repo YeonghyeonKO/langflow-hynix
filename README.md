@@ -1,5 +1,99 @@
 <!-- markdownlint-disable MD030 -->
 
+# Langflow-Hynix
+
+> SK Hynix 사내 커스텀 Langflow. upstream [langflow-ai/langflow](https://github.com/langflow-ai/langflow) 기반.
+
+---
+
+## 브랜치 전략
+
+| 브랜치 | 역할 | 비고 |
+|--------|------|------|
+| `main` | upstream 미러 | GitHub Sync Fork 가능 |
+| `hynix/v1.8.0` | v1.8.0 + 커스텀 | 검증 완료 |
+| `hynix/v1.8.3` | v1.8.3 + 커스텀 | 검증 전 |
+| `legacy/v1.8.0-hynix` | 이전 main 백업 | 아카이브 |
+
+## 커스텀 패치 목록
+
+커스텀 커밋 확인: `git log v1.8.3..hynix/v1.8.3 --oneline`
+
+### Keycloak SSO
+- Keycloak SSO 플러그인 (`src/backend/langflow-keycloak-sso/`)
+- PKCE + nonce 검증, end_session 로그아웃 보안 강화
+- EXTERNAL_SERVER_URL (Docker/K8s 내부 → 브라우저 리다이렉트 분리)
+- HCP API 기반 프로젝트 권한 검증
+- per-employee 인스턴스 접근 제한 (ALLOWED_EMPLOYEE)
+- JWT leeway 30초 (서버 간 시계 차이 허용)
+- Keycloak 26.x aud 클레임 호환
+- refresh/access token 쿠키 설정 (HTTP 환경 401 해결)
+
+### Frontend
+- 한글 IME 자모분리 이슈 수정
+- SSO 버튼 텍스트 동적 설정
+- Get Started 템플릿 커스터마이징 (반도체 공정 도우미, 사내 문서 검색, 데이터 분석 에이전트)
+
+### Docker / CI
+- `docker/keycloak-sso.Dockerfile` — SSO 플러그인 포함 이미지
+- `docker/keycloak-sso.docker-compose.yml` — Keycloak + Mock HCP 로컬 테스트
+- GitHub Actions: 태그 push 시 Docker 이미지 자동 빌드 (Docker Hub + ghcr.io)
+
+### Helm Chart
+- per-employee Helm 배포 (`helm/langflow/`)
+- NFS PV + initContainer 자동 생성
+- SSL CA 인증서 마운트
+- imagePullSecrets (Harbor 등 private registry)
+- nginx ingress class annotation
+
+## upstream 업그레이드 방법
+
+```bash
+# 1. main 동기화
+git checkout main && git pull upstream main
+
+# 2. 새 버전 기반 hynix 브랜치 생성
+git checkout -b hynix/v1.9.0 v1.9.0
+
+# 3. 최신 검증된 hynix 브랜치 머지
+git merge hynix/v1.8.3
+
+# 4. 충돌 해결 → 테스트 → 태그 → Docker 빌드
+git tag v1.9.0-hynix-rc0
+docker build -f docker/keycloak-sso.Dockerfile -t langflow-hynix:v1.9.0-hynix-rc0 .
+```
+
+## Docker 실행
+
+```bash
+# SSO 테스트 (Keycloak + Mock HCP)
+docker compose -f docker/keycloak-sso.docker-compose.yml up -d
+
+# 단독 실행
+docker run -p 7860:7860 \
+  -e KEYCLOAK_ENABLED=true \
+  -e KEYCLOAK_SERVER_URL=https://keycloak.company.com \
+  -e KEYCLOAK_REALM=company \
+  -e KEYCLOAK_CLIENT_ID=langflow \
+  -e KEYCLOAK_CLIENT_SECRET=<secret> \
+  -e KEYCLOAK_REDIRECT_URI=http://localhost:7860/api/v1/keycloak/callback \
+  -e LANGFLOW_SECRET_KEY=<random-32-chars> \
+  dk02315/langflow-hynix:v1.8.3-hynix-rc0
+```
+
+## Helm 배포
+
+```bash
+helm install langflow-<사번> helm/langflow/ \
+  --set empno=<사번> \
+  --set keycloak.serverUrl=https://keycloak.company.com \
+  --set keycloak.realm=company \
+  --set keycloak.clientId=langflow \
+  --set keycloak.clientSecret=<secret>
+```
+
+---
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./docs/static/img/langflow-logo-color-blue-bg.svg">
   <img src="./docs/static/img/langflow-logo-color-black-solid.svg" alt="Langflow logo">
