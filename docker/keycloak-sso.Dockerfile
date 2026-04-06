@@ -70,11 +70,14 @@ WORKDIR /app
 RUN uv sync --frozen --no-editable \
         --extra postgresql --no-group dev
 
-# ── Install keycloak-sso plugin AFTER uv sync (not in lockfile) ──────────────
+# ── Optionally install keycloak-sso plugin (--build-arg INSTALL_SSO=true) ─────
 # Must come after uv sync to prevent being removed by --frozen cleanup
+ARG INSTALL_SSO=true
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip install --python /app/.venv \
-        ./src/backend/langflow-keycloak-sso
+    if [ "$INSTALL_SSO" = "true" ]; then \
+      uv pip install --python /app/.venv \
+          ./src/backend/langflow-keycloak-sso; \
+    fi
 
 ################################
 # RUNTIME
@@ -113,7 +116,8 @@ ENV LANGFLOW_HOST=0.0.0.0
 ENV LANGFLOW_PORT=7860
 ENV LANGFLOW_AUTO_LOGIN=false
 
-# ── Keycloak SSO defaults (override at runtime) ───────────────────────────────
+# ── Keycloak SSO defaults (only meaningful when INSTALL_SSO=true) ─────────────
+ARG INSTALL_SSO=true
 ENV KEYCLOAK_ENABLED=false
 ENV KEYCLOAK_BUTTON_TEXT="SK하이닉스 SSO 로그인"
 ENV KEYCLOAK_SHARED_USERNAME=langflow-shared
