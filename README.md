@@ -17,7 +17,7 @@
 
 ## 커스텀 패치 목록
 
-커스텀 커밋 확인: `git log v1.8.3..hynix/v1.8.3 --oneline` (42 commits)
+커스텀 커밋 확인: `git log v1.8.3..hynix/v1.8.3 --oneline` (46 commits)
 
 ### Keycloak SSO
 - Keycloak SSO 플러그인 (`src/backend/langflow-keycloak-sso/`)
@@ -36,6 +36,8 @@
 - Playground 사이드바 모드 복원 (풀스크린 자동전환 제거)
 - 외부 API 번들 제거 (사이드바 + 검색 필터), 로컬/자체호스팅 번들만 유지
 - Discord, X(Twitter) 아이콘/링크 제거
+- SSO/non-SSO 로그인 페이지 통합 (SSO → SSO 버튼, non-SSO → id/pw 폼)
+- Logout: SSO 시 Keycloak logout, non-SSO 시 표준 logout
 
 ### Docker / CI
 - `docker/keycloak-sso.Dockerfile` — SSO 플러그인 포함 이미지
