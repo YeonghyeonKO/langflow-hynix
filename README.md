@@ -66,22 +66,64 @@ git tag v1.9.0-hynix-rc0
 docker build -f docker/keycloak-sso.Dockerfile -t langflow-hynix:v1.9.0-hynix-rc0 .
 ```
 
-## Docker 실행
+## Docker Images
+
+| 이미지 | 용도 | SSO |
+|--------|------|-----|
+| `dk02315/langflow-hynix:v1.8.3` | Backend (id/pw 로그인) | X |
+| `dk02315/langflow-hynix:v1.8.3-sso` | Backend (Keycloak SSO) | O |
+| `dk02315/langflow-hynix-frontend:v1.8.3` | Frontend (nginx, 공용) | 동적 |
+
+빌드 시 `INSTALL_SSO` ARG로 SSO 플러그인 포함 여부를 결정합니다:
 
 ```bash
-# SSO 테스트 (Keycloak + Mock HCP)
-docker compose -f docker/keycloak-sso.docker-compose.yml up -d
+# SSO 포함
+docker build -f docker/keycloak-sso.Dockerfile --build-arg INSTALL_SSO=true -t langflow-hynix:v1.8.3-sso .
 
-# 단독 실행
-docker run -p 7860:7860 \
+# SSO 없이
+docker build -f docker/keycloak-sso.Dockerfile --build-arg INSTALL_SSO=false -t langflow-hynix:v1.8.3 .
+
+# Frontend
+docker build -f docker/frontend/build_and_push_frontend.Dockerfile -t langflow-hynix-frontend:v1.8.3 .
+```
+
+## Docker 실행
+
+**A서비스 — Keycloak SSO (BE + FE 분리)**
+
+```bash
+# Backend (API only)
+docker run -d -p 7860:7860 \
   -e KEYCLOAK_ENABLED=true \
   -e KEYCLOAK_SERVER_URL=https://keycloak.company.com \
   -e KEYCLOAK_REALM=company \
   -e KEYCLOAK_CLIENT_ID=langflow \
   -e KEYCLOAK_CLIENT_SECRET=<secret> \
-  -e KEYCLOAK_REDIRECT_URI=http://localhost:7860/api/v1/keycloak/callback \
+  -e KEYCLOAK_REDIRECT_URI=http://localhost:3000/api/v1/keycloak/callback \
+  -e LANGFLOW_AUTO_LOGIN=false \
   -e LANGFLOW_SECRET_KEY=<random-32-chars> \
-  dk02315/langflow-hynix:v1.8.3-hynix-rc0
+  dk02315/langflow-hynix:v1.8.3-sso langflow run --backend-only
+
+# Frontend (nginx → Backend proxy)
+docker run -d -p 3000:3000 \
+  -e BACKEND_URL=http://<backend-host>:7860 \
+  -e FRONTEND_PORT=3000 \
+  dk02315/langflow-hynix-frontend:v1.8.3
+```
+
+**B서비스 — id/pw 로그인 (올인원)**
+
+```bash
+docker run -p 7860:7860 \
+  -e LANGFLOW_AUTO_LOGIN=false \
+  -e LANGFLOW_SECRET_KEY=<random-32-chars> \
+  dk02315/langflow-hynix:v1.8.3
+```
+
+**SSO 로컬 테스트 (Keycloak + Mock HCP)**
+
+```bash
+docker compose -f docker/keycloak-sso.docker-compose.yml up -d
 ```
 
 ## Helm 배포
@@ -89,6 +131,7 @@ docker run -p 7860:7860 \
 ```bash
 helm install langflow-<사번> helm/langflow/ \
   --set empno=<사번> \
+  --set image.tag=v1.8.3-sso \
   --set keycloak.serverUrl=https://keycloak.company.com \
   --set keycloak.realm=company \
   --set keycloak.clientId=langflow \
