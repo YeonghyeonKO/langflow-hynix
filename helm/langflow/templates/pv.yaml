@@ -11,6 +11,9 @@ spec:
   accessModes:
     - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
+  {{- if .Values.langflow.storageClass }}
+  storageClassName: {{ .Values.langflow.storageClass }}
+  {{- end }}
   nfs:
     server: {{ required "nfs.server is required" .Values.nfs.server }}
     path: {{ required "nfs.basePath is required" .Values.nfs.basePath }}
