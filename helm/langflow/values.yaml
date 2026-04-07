@@ -7,7 +7,13 @@ backend:
     tag: v1.8.3            # non-SSO image (overridden automatically when keycloak.enabled=true)
     ssoTag: v1.8.3-sso     # SSO image tag
     pullPolicy: IfNotPresent
-  resources: {}
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 4Gi
   # -- Extra environment variables for the backend
   extraEnv: []
 
@@ -17,7 +23,13 @@ frontend:
     tag: v1.8.3
     pullPolicy: IfNotPresent
   port: 8080
-  resources: {}
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
 
 ingress:
   enabled: true
