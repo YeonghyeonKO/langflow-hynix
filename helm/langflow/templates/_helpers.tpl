@@ -1,16 +1,22 @@
 {{- define "langflow.fullname" -}}
-langflow-{{ required "empno is required" .Values.empno }}
+langflow-{{ required "instanceName is required" .Values.instanceName }}
 {{- end }}
 
 {{- define "langflow.labels" -}}
 app.kubernetes.io/name: langflow
 app.kubernetes.io/instance: {{ include "langflow.fullname" . }}
-empno: {{ .Values.empno | quote }}
 {{- end }}
 
-{{- define "langflow.selectorLabels" -}}
+{{- define "langflow.backendSelectorLabels" -}}
 app.kubernetes.io/name: langflow
 app.kubernetes.io/instance: {{ include "langflow.fullname" . }}
+app.kubernetes.io/component: backend
+{{- end }}
+
+{{- define "langflow.frontendSelectorLabels" -}}
+app.kubernetes.io/name: langflow
+app.kubernetes.io/instance: {{ include "langflow.fullname" . }}
+app.kubernetes.io/component: frontend
 {{- end }}
 
 {{- define "langflow.secretName" -}}
@@ -22,7 +28,24 @@ app.kubernetes.io/instance: {{ include "langflow.fullname" . }}
 {{- end }}
 
 {{- define "langflow.host" -}}
-langflow-{{ .Values.empno }}.{{ .Values.ingress.domain }}
+{{ include "langflow.fullname" . }}.{{ .Values.ingress.domain }}
+{{- end }}
+
+{{- define "langflow.backendImage" -}}
+{{- if .Values.keycloak.enabled -}}
+{{ .Values.backend.image.repository }}:{{ .Values.backend.image.ssoTag }}
+{{- else -}}
+{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}
+{{- end }}
+{{- end }}
+
+{{/* imagePullSecrets: auto-created from imageRegistry or user-provided list */}}
+{{- define "langflow.imagePullSecrets" -}}
+{{- if .Values.imageRegistry.enabled }}
+- name: {{ include "langflow.fullname" . }}-registry
+{{- else if .Values.imagePullSecrets }}
+{{- toYaml .Values.imagePullSecrets }}
+{{- end }}
 {{- end }}
 
 {{/* SSL CA cert volume source */}}

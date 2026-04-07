@@ -15,9 +15,9 @@ spec:
       labels:
         {{- include "langflow.backendSelectorLabels" . | nindent 8 }}
     spec:
-      {{- if .Values.imagePullSecrets }}
+      {{- with (include "langflow.imagePullSecrets" . | trim) }}
       imagePullSecrets:
-        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+        {{- . | nindent 8 }}
       {{- end }}
       {{- if .Values.nfs.enabled }}
       initContainers:

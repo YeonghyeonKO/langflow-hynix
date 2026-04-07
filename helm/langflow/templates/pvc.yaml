@@ -1,3 +1,4 @@
+{{- if not .Values.nfs.enabled }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -5,11 +6,12 @@ metadata:
   labels:
     {{- include "langflow.labels" . | nindent 4 }}
 spec:
-  {{- if .Values.langflow.storageClass }}
-  storageClassName: {{ .Values.langflow.storageClass }}
-  {{- end }}
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
       storage: {{ .Values.langflow.storage }}
+  {{- if .Values.langflow.storageClass }}
+  storageClassName: {{ .Values.langflow.storageClass }}
+  {{- end }}
+{{- end }}
