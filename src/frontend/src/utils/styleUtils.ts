@@ -338,7 +338,6 @@ export const SIDEBAR_BUNDLES = [
   { display_name: "MongoDB", name: "mongodb", icon: "MongoDB" },
   { display_name: "pgvector", name: "pgvector", icon: "cpu" },
   { display_name: "Redis", name: "redis", icon: "Redis" },
-  { display_name: "Unstructured", name: "unstructured", icon: "Unstructured" },
   { display_name: "Vector Stores", name: "vectorstores", icon: "Layers" },
   { display_name: "vLLM", name: "vllm", icon: "vLLM" },
 ];
