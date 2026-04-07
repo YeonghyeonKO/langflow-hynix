@@ -35,7 +35,9 @@ spec:
         - name: backend
           image: {{ include "langflow.backendImage" . }}
           imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          {{- if .Values.separateFrontend }}
           command: ["langflow", "run", "--backend-only", "--port", "7860"]
+          {{- end }}
           ports:
             - containerPort: 7860
           env:

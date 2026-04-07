@@ -18,7 +18,13 @@ spec:
             pathType: Prefix
             backend:
               service:
+                {{- if .Values.separateFrontend }}
                 name: {{ include "langflow.fullname" . }}-frontend
                 port:
                   number: 80
+                {{- else }}
+                name: {{ include "langflow.fullname" . }}-backend
+                port:
+                  number: 7860
+                {{- end }}
 {{- end }}
