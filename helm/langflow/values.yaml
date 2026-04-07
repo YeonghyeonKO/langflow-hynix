@@ -1,6 +1,9 @@
 # -- Instance name (required). Used for resource naming and ingress hostname.
 instanceName: ""
 
+# -- When true, deploy BE (backend-only) + FE (nginx). When false, deploy BE only (serves FE itself).
+separateFrontend: true
+
 backend:
   image:
     repository: dk02315/langflow-hynix

@@ -11,6 +11,7 @@ spec:
   ports:
     - port: 7860
       targetPort: 7860
+{{- if .Values.separateFrontend }}
 ---
 apiVersion: v1
 kind: Service
@@ -25,3 +26,4 @@ spec:
   ports:
     - port: 80
       targetPort: {{ .Values.frontend.port }}
+{{- end }}
