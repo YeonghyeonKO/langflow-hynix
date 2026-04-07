@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"docker exec langflow-backend find / -name \\\"*.db\\\" -not -path \\\"*/proc/*\\\" 2>/dev/null\",\"description\":\"Find all .db files in container\"}",
+  "error": "Exit code 1\n/app/.venv/lib/python3.12/site-packages/langflow/langflow.db\n/app/data/langflow.db",
+  "timestamp": "2026-04-06T15:52:59.501Z",
+  "retry_count": 2
+}

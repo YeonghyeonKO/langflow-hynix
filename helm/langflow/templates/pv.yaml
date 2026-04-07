@@ -2,23 +2,37 @@
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: {{ include "langflow.fullname" . }}-data
+  name: {{ include "langflow.fullname" . }}-nfs
   labels:
     {{- include "langflow.labels" . | nindent 4 }}
 spec:
   capacity:
     storage: {{ .Values.langflow.storage }}
   accessModes:
-    - ReadWriteOnce
-  {{- if .Values.langflow.storageClass }}
-  storageClassName: {{ .Values.langflow.storageClass }}
-  {{- end }}
+    - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
+  nfs:
+    server: {{ required "nfs.server is required" .Values.nfs.server }}
+    path: {{ required "nfs.basePath is required" .Values.nfs.basePath }}
   {{- if .Values.nfs.mountOptions }}
   mountOptions:
     {{- toYaml .Values.nfs.mountOptions | nindent 4 }}
   {{- end }}
-  nfs:
-    server: {{ required "nfs.server is required when nfs.enabled=true" .Values.nfs.server }}
-    path: {{ required "nfs.basePath is required when nfs.enabled=true" .Values.nfs.basePath }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "langflow.fullname" . }}-data
+  labels:
+    {{- include "langflow.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: {{ .Values.langflow.storage }}
+  volumeName: {{ include "langflow.fullname" . }}-nfs
+  {{- if .Values.langflow.storageClass }}
+  storageClassName: {{ .Values.langflow.storageClass }}
+  {{- end }}
 {{- end }}
