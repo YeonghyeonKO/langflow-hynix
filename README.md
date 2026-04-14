@@ -73,21 +73,21 @@ docker build -f docker/keycloak-sso.Dockerfile -t langflow-hynix:v1.9.0-hynix-rc
 
 | 이미지 | 용도 | SSO |
 |--------|------|-----|
-| `dk02315/langflow-hynix:v1.8.4` | Backend (id/pw 로그인) | X |
-| `dk02315/langflow-hynix:v1.8.4-sso` | Backend (Keycloak SSO) | O |
-| `dk02315/langflow-hynix-frontend:v1.8.4` | Frontend (nginx, 공용) | 동적 |
+| `dk02315/langflow-hynix:v1.8.4-hynix-rc0` | Backend (id/pw 로그인) | X |
+| `dk02315/langflow-hynix:v1.8.4-hynix-sso-rc0` | Backend (Keycloak SSO) | O |
+| `dk02315/langflow-hynix-frontend:v1.8.4-hynix-rc0` | Frontend (nginx, 공용) | 동적 |
 
-빌드 시 `INSTALL_SSO` ARG로 SSO 플러그인 포함 여부를 결정합니다:
+태그 push 시 GitHub Actions가 3종 이미지를 자동 빌드합니다. 수동 빌드:
 
 ```bash
 # SSO 포함
-docker build -f docker/keycloak-sso.Dockerfile --build-arg INSTALL_SSO=true -t langflow-hynix:v1.8.4-sso .
+docker build -f docker/keycloak-sso.Dockerfile --build-arg INSTALL_SSO=true -t langflow-hynix:v1.8.4-hynix-sso-rc0 .
 
 # SSO 없이
-docker build -f docker/keycloak-sso.Dockerfile --build-arg INSTALL_SSO=false -t langflow-hynix:v1.8.4 .
+docker build -f docker/keycloak-sso.Dockerfile --build-arg INSTALL_SSO=false -t langflow-hynix:v1.8.4-hynix-rc0 .
 
 # Frontend
-docker build -f docker/frontend/build_and_push_frontend.Dockerfile -t langflow-hynix-frontend:v1.8.4 .
+docker build -f docker/frontend/build_and_push_frontend.Dockerfile -t langflow-hynix-frontend:v1.8.4-hynix-rc0 .
 ```
 
 ## Docker 실행
@@ -105,13 +105,13 @@ docker run -d -p 7860:7860 \
   -e KEYCLOAK_REDIRECT_URI=http://localhost:3000/api/v1/keycloak/callback \
   -e LANGFLOW_AUTO_LOGIN=false \
   -e LANGFLOW_SECRET_KEY=<random-32-chars> \
-  dk02315/langflow-hynix:v1.8.4-sso langflow run --backend-only
+  dk02315/langflow-hynix:v1.8.4-hynix-sso-rc0 langflow run --backend-only
 
 # Frontend (nginx → Backend proxy)
 docker run -d -p 3000:3000 \
   -e BACKEND_URL=http://<backend-host>:7860 \
   -e FRONTEND_PORT=3000 \
-  dk02315/langflow-hynix-frontend:v1.8.4
+  dk02315/langflow-hynix-frontend:v1.8.4-hynix-rc0
 ```
 
 **B서비스 — id/pw 로그인 (올인원)**
@@ -120,7 +120,7 @@ docker run -d -p 3000:3000 \
 docker run -p 7860:7860 \
   -e LANGFLOW_AUTO_LOGIN=false \
   -e LANGFLOW_SECRET_KEY=<random-32-chars> \
-  dk02315/langflow-hynix:v1.8.4
+  dk02315/langflow-hynix:v1.8.4-hynix-rc0
 ```
 
 **SSO 로컬 테스트 (Keycloak + Mock HCP)**
@@ -134,7 +134,7 @@ docker compose -f docker/keycloak-sso.docker-compose.yml up -d
 ```bash
 helm install langflow-<사번> helm/langflow/ \
   --set empno=<사번> \
-  --set image.tag=v1.8.4-sso \
+  --set backend.image.ssoTag=v1.8.4-hynix-sso-rc0 \
   --set keycloak.serverUrl=https://keycloak.company.com \
   --set keycloak.realm=company \
   --set keycloak.clientId=langflow \
