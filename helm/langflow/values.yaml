@@ -7,8 +7,8 @@ separateFrontend: true
 backend:
   image:
     repository: dk02315/langflow-hynix
-    tag: v1.8.3            # non-SSO image (overridden automatically when keycloak.enabled=true)
-    ssoTag: v1.8.3-sso     # SSO image tag
+    tag: v1.8.4            # non-SSO image (overridden automatically when keycloak.enabled=true)
+    ssoTag: v1.8.4-sso     # SSO image tag
     pullPolicy: IfNotPresent
   resources:
     requests:
@@ -23,7 +23,7 @@ backend:
 frontend:
   image:
     repository: dk02315/langflow-hynix-frontend
-    tag: v1.8.3
+    tag: v1.8.4
     pullPolicy: IfNotPresent
   port: 8080
   resources:

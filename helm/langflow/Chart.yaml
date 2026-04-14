@@ -3,4 +3,4 @@ name: langflow
 description: Langflow with separate BE/FE deployments and optional Keycloak SSO
 type: application
 version: 0.2.0
-appVersion: "1.8.3"
+appVersion: "1.8.4"
