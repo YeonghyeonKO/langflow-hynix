@@ -1,0 +1,94 @@
+# -- Instance name (required). Used for resource naming and ingress hostname.
+instanceName: ""
+
+# -- When true, deploy BE (backend-only) + FE (nginx). When false, deploy BE only (serves FE itself).
+separateFrontend: true
+
+backend:
+  image:
+    repository: dk02315/langflow-hynix
+    tag: v1.8.3            # non-SSO image (overridden automatically when keycloak.enabled=true)
+    ssoTag: v1.8.3-sso     # SSO image tag
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+  # -- Extra environment variables for the backend
+  extraEnv: []
+
+frontend:
+  image:
+    repository: dk02315/langflow-hynix-frontend
+    tag: v1.8.3
+    pullPolicy: IfNotPresent
+  port: 8080
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+ingress:
+  enabled: true
+  domain: aipp02.skhynix.com
+  annotations:
+    kubernetes.io/ingress.class: nginx
+
+# -- Keycloak SSO (optional). When disabled, standard id/pw login is used.
+keycloak:
+  enabled: false
+  serverUrl: ""            # e.g. https://keycloak.skhynix.com
+  realm: ""
+  clientId: ""
+  clientSecret: ""         # ignored if existingSecret is set
+  employeeClaim: preferred_username
+  buttonText: "SK하이닉스 SSO 로그인"
+  sharedUsername: ""        # e.g. langflow-shared-project-a
+  allowedEmployee: ""      # restrict to specific employee number
+  hcpApiUrl: ""            # e.g. http://hcp-api.com/v1/projects/my-project/roles
+  existingSecret: ""
+  existingSecretKeys:
+    clientSecret: client-secret
+    langflowSecretKey: langflow-secret-key
+
+# -- SSL CA certificate for Keycloak (corporate PKI)
+ssl:
+  enabled: false
+  caCert: ""
+  existingConfigMap: ""
+  existingSecret: ""
+  key: ca.crt
+
+langflow:
+  secretKey: ""            # ignored if existingSecret is set
+  autoLogin: "false"
+  storage: 5Gi
+  storageClass: ""         # e.g. sc-nfs-app-retain
+  refreshSecure: "false"
+  refreshSameSite: "lax"
+  accessSecure: "false"
+  accessSameSite: "lax"
+  databaseUrl: ""          # leave empty for default SQLite
+
+# -- NFS PersistentVolume
+nfs:
+  enabled: false
+  server: ""
+  basePath: ""
+  mountOptions: []
+  initImage: busybox:1.36
+
+# -- Private registry credentials (creates imagePullSecret automatically)
+imageRegistry:
+  enabled: false
+  server: ""               # e.g. harbor.company.com
+  username: ""
+  password: ""
+
+imagePullSecrets: []       # use this OR imageRegistry, not both

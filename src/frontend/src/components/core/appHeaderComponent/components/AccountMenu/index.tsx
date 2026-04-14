@@ -7,6 +7,7 @@ import {
   GITHUB_URL,
   TWITTER_URL,
 } from "@/constants/constants";
+import { useGetKeycloakConfig } from "@/controllers/API/queries/keycloak/use-get-keycloak-config";
 import { useLogout } from "@/controllers/API/queries/auth";
 import { CustomProfileIcon } from "@/customization/components/custom-profile-icon";
 import { ENABLE_DATASTAX_LANGFLOW } from "@/customization/feature-flags";
@@ -27,6 +28,7 @@ export const AccountMenu = () => {
   const version = useDarkStore((state) => state.version);
   const latestVersion = useDarkStore((state) => state.latestVersion);
   const navigate = useCustomNavigate();
+  const { data: keycloakConfig } = useGetKeycloakConfig();
   const { mutate: mutationLogout } = useLogout();
 
   const { isAdmin, autoLogin } = useAuthStore((state) => ({
@@ -35,7 +37,11 @@ export const AccountMenu = () => {
   }));
 
   const handleLogout = () => {
-    mutationLogout();
+    if (keycloakConfig?.enabled) {
+      window.location.href = "/api/v1/keycloak/logout";
+    } else {
+      mutationLogout();
+    }
   };
 
   const isLatestVersion = (() => {
@@ -132,30 +138,6 @@ export const AccountMenu = () => {
               >
                 <FaGithub className="h-4 w-4" />
                 GitHub
-              </span>
-            </HeaderMenuItemLink>
-            <HeaderMenuItemLink newPage href={DISCORD_URL}>
-              <span
-                data-testid="menu_discord_button"
-                id="menu_discord_button"
-                className="flex items-center gap-2"
-              >
-                <FaDiscord className="h-4 w-4 text-[#5865F2]" />
-                Discord
-              </span>
-            </HeaderMenuItemLink>
-            <HeaderMenuItemLink newPage href={TWITTER_URL}>
-              <span
-                data-testid="menu_twitter_button"
-                id="menu_twitter_button"
-                className="flex items-center gap-2"
-              >
-                <ForwardedIconComponent
-                  strokeWidth={2}
-                  name="TwitterX"
-                  className="h-4 w-4"
-                />
-                X
               </span>
             </HeaderMenuItemLink>
           </div>
