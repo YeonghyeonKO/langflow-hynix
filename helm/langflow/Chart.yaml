@@ -2,5 +2,5 @@ apiVersion: v2
 name: langflow
 description: Langflow with separate BE/FE deployments and optional Keycloak SSO
 type: application
-version: 0.2.0
-appVersion: "1.8.4"
+version: 0.3.0
+appVersion: "1.9.0"

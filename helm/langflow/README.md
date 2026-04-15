@@ -62,13 +62,13 @@ separateFrontend: true
 backend:
   image:
     repository: dk02315/langflow-hynix
-    tag: v1.8.4-hynix-rc0
-    ssoTag: v1.8.4-hynix-sso-rc0
+    tag: v1.9.0-hynix-rc0
+    ssoTag: v1.9.0-hynix-sso-rc0
 
 frontend:
   image:
     repository: dk02315/langflow-hynix-frontend
-    tag: v1.8.4-hynix-rc0
+    tag: v1.9.0-hynix-rc0
 
 keycloak:
   enabled: true
@@ -139,8 +139,8 @@ kubectl delete namespace langflow-2074795
 | 파라미터 | 설명 | 기본값 |
 |---------|------|--------|
 | `backend.image.repository` | Backend Docker 이미지 | `dk02315/langflow-hynix` |
-| `backend.image.tag` | non-SSO 이미지 태그 | `v1.8.4-hynix-rc0` |
-| `backend.image.ssoTag` | SSO 이미지 태그 (keycloak.enabled=true 시 자동 사용) | `v1.8.4-hynix-sso-rc0` |
+| `backend.image.tag` | non-SSO 이미지 태그 | `v1.9.0-hynix-rc0` |
+| `backend.image.ssoTag` | SSO 이미지 태그 (keycloak.enabled=true 시 자동 사용) | `v1.9.0-hynix-sso-rc0` |
 | `backend.image.pullPolicy` | 이미지 pull 정책 | `IfNotPresent` |
 | `backend.resources` | CPU/메모리 리소스 | requests: 500m/1Gi, limits: 2/4Gi |
 | `backend.extraEnv` | 추가 환경변수 | `[]` |
@@ -150,7 +150,7 @@ kubectl delete namespace langflow-2074795
 | 파라미터 | 설명 | 기본값 |
 |---------|------|--------|
 | `frontend.image.repository` | Frontend Docker 이미지 | `dk02315/langflow-hynix-frontend` |
-| `frontend.image.tag` | 이미지 태그 | `v1.8.4-hynix-rc0` |
+| `frontend.image.tag` | 이미지 태그 | `v1.9.0-hynix-rc0` |
 | `frontend.image.pullPolicy` | 이미지 pull 정책 | `IfNotPresent` |
 | `frontend.port` | Frontend 포트 | `8080` |
 | `frontend.resources` | CPU/메모리 리소스 | requests: 100m/128Mi, limits: 500m/256Mi |
