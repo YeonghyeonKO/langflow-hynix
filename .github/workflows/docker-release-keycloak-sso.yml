@@ -1,11 +1,11 @@
 name: Docker Release
 
 # v*-hynix* 태그를 push하면 자동으로 GitHub Release 생성 + Docker 이미지 3종 빌드/푸시
-# 사용법: git tag v1.8.4-hynix-rc0 && git push origin v1.8.4-hynix-rc0
+# 사용법: git tag v1.9.0-hynix-rc0 && git push origin v1.9.0-hynix-rc0
 #
 # 생성되는 이미지:
 #   langflow-hynix:<tag>           — Backend (non-SSO)
-#   langflow-hynix:<tag-sso>       — Backend (SSO)   예: v1.8.4-hynix-sso-rc0
+#   langflow-hynix:<tag-sso>       — Backend (SSO)   예: v1.9.0-hynix-sso-rc0
 #   langflow-hynix-frontend:<tag>  — Frontend (nginx)
 
 on:
@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "빌드할 git 태그 (예: v1.8.4-hynix-rc0)"
+        description: "빌드할 git 태그 (예: v1.9.0-hynix-rc0)"
         required: true
         type: string
 
@@ -36,7 +36,7 @@ jobs:
             TAG="${GITHUB_REF_NAME}"
           fi
           echo "name=${TAG}" >> $GITHUB_OUTPUT
-          # v1.8.4-hynix-rc0 → v1.8.4-hynix-sso-rc0
+          # v1.9.0-hynix-rc0 → v1.9.0-hynix-sso-rc0
           SSO_TAG=$(echo "$TAG" | sed 's/-\(rc[0-9]*\)$/-sso-\1/')
           echo "sso_name=${SSO_TAG}" >> $GITHUB_OUTPUT
 

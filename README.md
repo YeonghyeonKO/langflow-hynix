@@ -10,15 +10,15 @@
 
 | 브랜치 | 역할 | 비고 |
 |--------|------|------|
-| `main` | 최신 hynix 릴리즈 | hynix/v1.8.4 기반 |
-| `hynix/v1.8.4` | v1.8.4 + 커스텀 | **현행** |
-| `hynix/v1.8.4` | v1.8.4 + 커스텀 | v1.8.4-hynix-rc0 |
+| `hynix/v1.9.0` | v1.9.0 + 커스텀 | **현행 (default)** |
+| `hynix/v1.8.4` | v1.8.4 + 커스텀 | 아카이브 |
+| `hynix/v1.8.3` | v1.8.3 + 커스텀 | 아카이브 |
 | `hynix/v1.8.0` | v1.8.0 + 커스텀 | 아카이브 |
-| `legacy/v1.8.0-hynix` | 이전 main 백업 | 아카이브 |
+| `main` | upstream 미러 | GitHub Sync Fork 가능 |
 
 ## 커스텀 패치 목록
 
-커스텀 커밋 확인: `git log v1.8.4..hynix/v1.8.4 --oneline`
+커스텀 커밋 확인: `git log upstream/release-1.9.0..hynix/v1.9.0 --oneline`
 
 ### Keycloak SSO
 - Keycloak SSO 플러그인 (`src/backend/langflow-keycloak-sso/`)
@@ -55,39 +55,39 @@
 ## upstream 업그레이드 방법
 
 ```bash
-# 1. main 동기화
-git checkout main && git pull upstream main
+# 1. upstream fetch
+git fetch upstream --tags
 
 # 2. 새 버전 기반 hynix 브랜치 생성
-git checkout -b hynix/v1.9.0 v1.9.0
+git checkout -b hynix/v1.10.0 upstream/release-1.10.0
 
 # 3. 최신 검증된 hynix 브랜치 머지
-git merge hynix/v1.8.4
+git merge hynix/v1.9.0
 
 # 4. 충돌 해결 → 테스트 → 태그 → Docker 빌드
-git tag v1.9.0-hynix-rc0
-docker build -f docker/keycloak-sso.Dockerfile -t langflow-hynix:v1.9.0-hynix-rc0 .
+git tag v1.10.0-hynix-rc0
+docker build -f docker/keycloak-sso.Dockerfile -t langflow-hynix:v1.10.0-hynix-rc0 .
 ```
 
 ## Docker Images
 
 | 이미지 | 용도 | SSO |
 |--------|------|-----|
-| `dk02315/langflow-hynix:v1.8.4-hynix-rc0` | Backend (id/pw 로그인) | X |
-| `dk02315/langflow-hynix:v1.8.4-hynix-sso-rc0` | Backend (Keycloak SSO) | O |
-| `dk02315/langflow-hynix-frontend:v1.8.4-hynix-rc0` | Frontend (nginx, 공용) | 동적 |
+| `dk02315/langflow-hynix:v1.9.0-hynix-rc0` | Backend (id/pw 로그인) | X |
+| `dk02315/langflow-hynix:v1.9.0-hynix-sso-rc0` | Backend (Keycloak SSO) | O |
+| `dk02315/langflow-hynix-frontend:v1.9.0-hynix-rc0` | Frontend (nginx, 공용) | 동적 |
 
 태그 push 시 GitHub Actions가 3종 이미지를 자동 빌드합니다. 수동 빌드:
 
 ```bash
 # SSO 포함
-docker build -f docker/keycloak-sso.Dockerfile --build-arg INSTALL_SSO=true -t langflow-hynix:v1.8.4-hynix-sso-rc0 .
+docker build -f docker/keycloak-sso.Dockerfile --build-arg INSTALL_SSO=true -t langflow-hynix:v1.9.0-hynix-sso-rc0 .
 
 # SSO 없이
-docker build -f docker/keycloak-sso.Dockerfile --build-arg INSTALL_SSO=false -t langflow-hynix:v1.8.4-hynix-rc0 .
+docker build -f docker/keycloak-sso.Dockerfile --build-arg INSTALL_SSO=false -t langflow-hynix:v1.9.0-hynix-rc0 .
 
 # Frontend
-docker build -f docker/frontend/build_and_push_frontend.Dockerfile -t langflow-hynix-frontend:v1.8.4-hynix-rc0 .
+docker build -f docker/frontend/build_and_push_frontend.Dockerfile -t langflow-hynix-frontend:v1.9.0-hynix-rc0 .
 ```
 
 ## Docker 실행
@@ -105,13 +105,13 @@ docker run -d -p 7860:7860 \
   -e KEYCLOAK_REDIRECT_URI=http://localhost:3000/api/v1/keycloak/callback \
   -e LANGFLOW_AUTO_LOGIN=false \
   -e LANGFLOW_SECRET_KEY=<random-32-chars> \
-  dk02315/langflow-hynix:v1.8.4-hynix-sso-rc0 langflow run --backend-only
+  dk02315/langflow-hynix:v1.9.0-hynix-sso-rc0 langflow run --backend-only
 
 # Frontend (nginx → Backend proxy)
 docker run -d -p 3000:3000 \
   -e BACKEND_URL=http://<backend-host>:7860 \
   -e FRONTEND_PORT=3000 \
-  dk02315/langflow-hynix-frontend:v1.8.4-hynix-rc0
+  dk02315/langflow-hynix-frontend:v1.9.0-hynix-rc0
 ```
 
 **B서비스 — id/pw 로그인 (올인원)**
@@ -120,7 +120,7 @@ docker run -d -p 3000:3000 \
 docker run -p 7860:7860 \
   -e LANGFLOW_AUTO_LOGIN=false \
   -e LANGFLOW_SECRET_KEY=<random-32-chars> \
-  dk02315/langflow-hynix:v1.8.4-hynix-rc0
+  dk02315/langflow-hynix:v1.9.0-hynix-rc0
 ```
 
 **SSO 로컬 테스트 (Keycloak + Mock HCP)**
@@ -134,7 +134,7 @@ docker compose -f docker/keycloak-sso.docker-compose.yml up -d
 ```bash
 helm install langflow-<사번> helm/langflow/ \
   --set empno=<사번> \
-  --set backend.image.ssoTag=v1.8.4-hynix-sso-rc0 \
+  --set backend.image.ssoTag=v1.9.0-hynix-sso-rc0 \
   --set keycloak.serverUrl=https://keycloak.company.com \
   --set keycloak.realm=company \
   --set keycloak.clientId=langflow \
