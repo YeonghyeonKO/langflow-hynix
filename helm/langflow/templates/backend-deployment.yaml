@@ -1,0 +1,138 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "langflow.fullname" . }}-backend
+  labels:
+    {{- include "langflow.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "langflow.backendSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "langflow.backendSelectorLabels" . | nindent 8 }}
+    spec:
+      {{- with (include "langflow.imagePullSecrets" . | trim) }}
+      imagePullSecrets:
+        {{- . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.nfs.enabled }}
+      initContainers:
+        - name: nfs-init
+          image: {{ .Values.nfs.initImage }}
+          command:
+            - sh
+            - -c
+            - mkdir -p /mnt/nfs/{{ include "langflow.fullname" . }} && chmod 777 /mnt/nfs/{{ include "langflow.fullname" . }}
+          volumeMounts:
+            - name: data
+              mountPath: /mnt/nfs
+      {{- end }}
+      containers:
+        - name: backend
+          image: {{ include "langflow.backendImage" . }}
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          {{- if .Values.separateFrontend }}
+          command: ["langflow", "run", "--backend-only", "--port", "7860"]
+          {{- end }}
+          ports:
+            - containerPort: 7860
+          env:
+            - name: LANGFLOW_AUTO_LOGIN
+              value: {{ .Values.langflow.autoLogin | quote }}
+            - name: LANGFLOW_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "langflow.secretName" . }}
+                  key: {{ .Values.keycloak.existingSecretKeys.langflowSecretKey }}
+            - name: LANGFLOW_DATABASE_URL
+              value: {{ .Values.langflow.databaseUrl | default "sqlite+aiosqlite:////app/data/langflow.db" | quote }}
+            - name: LANGFLOW_REFRESH_SECURE
+              value: {{ .Values.langflow.refreshSecure | quote }}
+            - name: LANGFLOW_REFRESH_SAME_SITE
+              value: {{ .Values.langflow.refreshSameSite | quote }}
+            - name: LANGFLOW_ACCESS_SECURE
+              value: {{ .Values.langflow.accessSecure | quote }}
+            - name: LANGFLOW_ACCESS_SAME_SITE
+              value: {{ .Values.langflow.accessSameSite | quote }}
+            {{- if .Values.keycloak.enabled }}
+            - name: KEYCLOAK_ENABLED
+              value: "true"
+            - name: KEYCLOAK_SERVER_URL
+              value: {{ required "keycloak.serverUrl is required when keycloak is enabled" .Values.keycloak.serverUrl | quote }}
+            - name: KEYCLOAK_REALM
+              value: {{ required "keycloak.realm is required when keycloak is enabled" .Values.keycloak.realm | quote }}
+            - name: KEYCLOAK_CLIENT_ID
+              value: {{ required "keycloak.clientId is required when keycloak is enabled" .Values.keycloak.clientId | quote }}
+            - name: KEYCLOAK_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "langflow.secretName" . }}
+                  key: {{ .Values.keycloak.existingSecretKeys.clientSecret }}
+            - name: KEYCLOAK_REDIRECT_URI
+              value: "http://{{ include "langflow.host" . }}/api/v1/keycloak/callback"
+            - name: KEYCLOAK_EMPLOYEE_CLAIM
+              value: {{ .Values.keycloak.employeeClaim | quote }}
+            - name: KEYCLOAK_BUTTON_TEXT
+              value: {{ .Values.keycloak.buttonText | quote }}
+            {{- if .Values.keycloak.sharedUsername }}
+            - name: KEYCLOAK_SHARED_USERNAME
+              value: {{ .Values.keycloak.sharedUsername | quote }}
+            {{- end }}
+            {{- if .Values.keycloak.allowedEmployee }}
+            - name: KEYCLOAK_ALLOWED_EMPLOYEE
+              value: {{ .Values.keycloak.allowedEmployee | quote }}
+            {{- end }}
+            {{- if .Values.keycloak.hcpApiUrl }}
+            - name: KEYCLOAK_HCP_API_URL
+              value: {{ .Values.keycloak.hcpApiUrl | quote }}
+            {{- end }}
+            {{- end }}
+            {{- if .Values.ssl.enabled }}
+            - name: SSL_CERT_FILE
+              value: /etc/ssl/custom/{{ .Values.ssl.key }}
+            - name: REQUESTS_CA_BUNDLE
+              value: /etc/ssl/custom/{{ .Values.ssl.key }}
+            {{- end }}
+            {{- range .Values.backend.extraEnv }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+            {{- end }}
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+              {{- if .Values.nfs.enabled }}
+              subPath: {{ include "langflow.fullname" . }}
+              {{- end }}
+            {{- if .Values.ssl.enabled }}
+            - name: ca-cert
+              mountPath: /etc/ssl/custom
+              readOnly: true
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 7860
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 7860
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          {{- with .Values.backend.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "langflow.fullname" . }}-data
+        {{- if .Values.ssl.enabled }}
+        - name: ca-cert
+          {{- include "langflow.sslVolume" . | nindent 10 }}
+        {{- end }}

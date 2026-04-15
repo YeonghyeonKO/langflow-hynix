@@ -281,6 +281,7 @@ src/frontend/temp
 
 news-aggregated.json
 .claude
+
 member_servers.json
 # Component index cache (user-specific)
 **/.cache/lfx/
@@ -290,6 +291,4 @@ data/user
 
 sso-config.yaml
 AGENTS.md
-CLAUDE.local.md
-langflow.log.*
-tmp_toolguard/
+.omc/

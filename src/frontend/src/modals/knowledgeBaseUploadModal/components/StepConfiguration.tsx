@@ -186,7 +186,7 @@ export function StepConfiguration({
                 <span className="text-sm font-medium">
                   Configure Sources
                   <span className="text-xs text-muted-foreground ml-1">
-                    (1 GB max upload)
+                    (20 MB max upload)
                   </span>
                 </span>
               </div>
