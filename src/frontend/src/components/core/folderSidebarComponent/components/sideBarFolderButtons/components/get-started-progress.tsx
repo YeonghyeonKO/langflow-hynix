@@ -1,8 +1,8 @@
 import { type FC, useEffect, useMemo, useState } from "react";
-import { FaDiscord, FaGithub } from "react-icons/fa";
+import { FaGithub } from "react-icons/fa";
 import IconComponent from "@/components/common/genericIconComponent";
 import { Button } from "@/components/ui/button";
-import { DISCORD_URL, GITHUB_URL } from "@/constants/constants";
+import { GITHUB_URL } from "@/constants/constants";
 import { useGetUserData, useUpdateUser } from "@/controllers/API/queries/auth";
 import ModalsComponent from "@/pages/MainPage/components/modalsComponent";
 import useFlowsManagerStore from "@/stores/flowsManagerStore";
@@ -14,11 +14,9 @@ export const GetStartedProgress: FC<{
   isGithubStarred: boolean;
   isDiscordJoined: boolean;
   handleDismissDialog: () => void;
-}> = ({ userData, isGithubStarred, isDiscordJoined, handleDismissDialog }) => {
+}> = ({ userData, isGithubStarred, handleDismissDialog }) => {
   const [isGithubStarredChild, setIsGithubStarredChild] =
     useState(isGithubStarred);
-  const [isDiscordJoinedChild, setIsDiscordJoinedChild] =
-    useState(isDiscordJoined);
   const [newProjectModal, setNewProjectModal] = useState(false);
 
   const flows = useFlowsManagerStore((state) => state.flows);
@@ -35,23 +33,15 @@ export const GetStartedProgress: FC<{
   const hasFlows = flows && flows?.length > 0;
 
   const percentageGetStarted = useMemo(() => {
-    const stepValue = 33;
+    const stepValue = 50;
     let totalPercentage = 0;
 
     if (userData?.optins?.github_starred) {
       totalPercentage += stepValue;
     }
 
-    if (userData?.optins?.discord_clicked) {
-      totalPercentage += stepValue;
-    }
-
     if (hasFlows) {
       totalPercentage += stepValue;
-    }
-
-    if (totalPercentage === 99) {
-      return 100;
     }
 
     return Math.min(totalPercentage, 100);
@@ -72,9 +62,6 @@ export const GetStartedProgress: FC<{
           if (key === "github_starred") {
             setIsGithubStarredChild(true);
             window.open(GITHUB_URL, "_blank", "noopener,noreferrer");
-          } else if (key === "discord_clicked") {
-            setIsDiscordJoinedChild(true);
-            window.open(DISCORD_URL, "_blank", "noopener,noreferrer");
           } else if (key === "dialog_dismissed") {
             handleDismissDialog();
           }
