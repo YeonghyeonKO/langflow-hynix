@@ -8,6 +8,7 @@ import {
   GITHUB_URL,
   TWITTER_URL,
 } from "@/constants/constants";
+import { useGetKeycloakConfig } from "@/controllers/API/queries/keycloak/use-get-keycloak-config";
 import { useLogout } from "@/controllers/API/queries/auth";
 import { CustomProfileIcon } from "@/customization/components/custom-profile-icon";
 import { ENABLE_DATASTAX_LANGFLOW } from "@/customization/feature-flags";
@@ -29,6 +30,7 @@ export const AccountMenu = () => {
   const version = useDarkStore((state) => state.version);
   const latestVersion = useDarkStore((state) => state.latestVersion);
   const navigate = useCustomNavigate();
+  const { data: keycloakConfig } = useGetKeycloakConfig();
   const { mutate: mutationLogout } = useLogout();
 
   const { isAdmin, autoLogin } = useAuthStore((state) => ({
@@ -37,7 +39,11 @@ export const AccountMenu = () => {
   }));
 
   const handleLogout = () => {
-    mutationLogout();
+    if (keycloakConfig?.enabled) {
+      window.location.href = "/api/v1/keycloak/logout";
+    } else {
+      mutationLogout();
+    }
   };
 
   const isLatestVersion = (() => {
