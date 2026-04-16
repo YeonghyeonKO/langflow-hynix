@@ -26,6 +26,7 @@ jobs:
     outputs:
       tag: ${{ steps.tag.outputs.name }}
       sso_tag: ${{ steps.tag.outputs.sso_name }}
+      owner_lc: ${{ steps.tag.outputs.owner_lc }}
     steps:
       - name: Resolve tag name
         id: tag
@@ -39,6 +40,8 @@ jobs:
           # v1.9.0-hynix-rc0 → v1.9.0-hynix-sso-rc0
           SSO_TAG=$(echo "$TAG" | sed 's/-\(rc[0-9]*\)$/-sso-\1/')
           echo "sso_name=${SSO_TAG}" >> $GITHUB_OUTPUT
+          # Docker requires lowercase image names
+          echo "owner_lc=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
   backend:
     name: Backend (non-SSO)
@@ -72,7 +75,7 @@ jobs:
           build-args: INSTALL_SSO=false
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/langflow-hynix:${{ needs.prepare.outputs.tag }}
+            ghcr.io/${{ needs.prepare.outputs.owner_lc }}/langflow-hynix:${{ needs.prepare.outputs.tag }}
             ${{ secrets.DOCKERHUB_USERNAME }}/langflow-hynix:${{ needs.prepare.outputs.tag }}
           cache-from: type=gha,scope=backend
           cache-to: type=gha,scope=backend,mode=max
@@ -109,7 +112,7 @@ jobs:
           build-args: INSTALL_SSO=true
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/langflow-hynix:${{ needs.prepare.outputs.sso_tag }}
+            ghcr.io/${{ needs.prepare.outputs.owner_lc }}/langflow-hynix:${{ needs.prepare.outputs.sso_tag }}
             ${{ secrets.DOCKERHUB_USERNAME }}/langflow-hynix:${{ needs.prepare.outputs.sso_tag }}
           cache-from: type=gha,scope=backend-sso
           cache-to: type=gha,scope=backend-sso,mode=max
@@ -145,7 +148,7 @@ jobs:
           file: docker/frontend/build_and_push_frontend.Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/langflow-hynix-frontend:${{ needs.prepare.outputs.tag }}
+            ghcr.io/${{ needs.prepare.outputs.owner_lc }}/langflow-hynix-frontend:${{ needs.prepare.outputs.tag }}
             ${{ secrets.DOCKERHUB_USERNAME }}/langflow-hynix-frontend:${{ needs.prepare.outputs.tag }}
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,scope=frontend,mode=max
@@ -182,9 +185,9 @@ jobs:
 
             ### Pull (ghcr.io)
             ```bash
-            docker pull ghcr.io/${{ github.repository_owner }}/langflow-hynix:${{ needs.prepare.outputs.tag }}
-            docker pull ghcr.io/${{ github.repository_owner }}/langflow-hynix:${{ needs.prepare.outputs.sso_tag }}
-            docker pull ghcr.io/${{ github.repository_owner }}/langflow-hynix-frontend:${{ needs.prepare.outputs.tag }}
+            docker pull ghcr.io/${{ needs.prepare.outputs.owner_lc }}/langflow-hynix:${{ needs.prepare.outputs.tag }}
+            docker pull ghcr.io/${{ needs.prepare.outputs.owner_lc }}/langflow-hynix:${{ needs.prepare.outputs.sso_tag }}
+            docker pull ghcr.io/${{ needs.prepare.outputs.owner_lc }}/langflow-hynix-frontend:${{ needs.prepare.outputs.tag }}
             ```
 
             ### 실행 예시 (SSO)
