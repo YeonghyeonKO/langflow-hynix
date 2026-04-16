@@ -45,6 +45,7 @@ RUN apt-get update \
 COPY ./uv.lock ./README.md ./pyproject.toml /app/
 COPY ./src/backend/base/README.md ./src/backend/base/uv.lock ./src/backend/base/pyproject.toml /app/src/backend/base/
 COPY ./src/lfx/README.md ./src/lfx/pyproject.toml /app/src/lfx/
+COPY ./src/sdk/README.md ./src/sdk/pyproject.toml /app/src/sdk/
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-install-project --no-editable \
@@ -58,9 +59,9 @@ COPY ./src/frontend /tmp/src/frontend
 WORKDIR /tmp/src/frontend
 RUN --mount=type=cache,target=/root/.npm \
     npm ci \
-    && LANGFLOW_AUTO_LOGIN=false NODE_OPTIONS="--max-old-space-size=4096" JOBS=1 npm run build \
-    && rm -rf /app/src/backend/base/langflow/frontend \
-    && cp -r build /app/src/backend/base/langflow/frontend
+    && ESBUILD_BINARY_PATH="" NODE_OPTIONS="--max-old-space-size=4096" JOBS=1 npm run build \
+    && cp -r build /app/src/backend/langflow/frontend \
+    && rm -rf /tmp/src/frontend
 
 WORKDIR /app
 
@@ -82,7 +83,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 ################################
 # RUNTIME
 ################################
-FROM python:3.12.12-slim-trixie AS runtime
+FROM python:3.12.13-slim-trixie AS runtime
 
 # Install system deps + Node.js via nodesource (avoids grep -P regex issues)
 RUN apt-get update \
