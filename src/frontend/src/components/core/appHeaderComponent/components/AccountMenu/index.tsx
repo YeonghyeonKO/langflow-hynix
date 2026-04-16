@@ -1,12 +1,9 @@
-import { FaDiscord, FaGithub } from "react-icons/fa";
+import { FaGithub } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
-import { ForwardedIconComponent } from "@/components/common/genericIconComponent";
 import {
   DATASTAX_DOCS_URL,
-  DISCORD_URL,
   DOCS_URL,
   GITHUB_URL,
-  TWITTER_URL,
 } from "@/constants/constants";
 import { useGetKeycloakConfig } from "@/controllers/API/queries/keycloak/use-get-keycloak-config";
 import { useLogout } from "@/controllers/API/queries/auth";
