@@ -105,6 +105,7 @@ export default function LoginPage(): JSX.Element {
               className="w-full"
               variant="default"
               type="button"
+              ignoreTitleCase
               onClick={() => {
                 window.location.href = "/api/v1/keycloak/login";
               }}
