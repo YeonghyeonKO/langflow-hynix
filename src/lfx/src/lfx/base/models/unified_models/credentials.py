@@ -411,12 +411,15 @@ def validate_model_provider_key(provider: str, variables: dict[str, str], model_
                 raise ValueError(msg)
 
             base_url = base_url.rstrip("/")
+            # Users typically provide URL with /v1 suffix (e.g. http://localhost:8000/v1)
+            # Avoid double /v1 by checking if it already ends with /v1
+            models_url = f"{base_url}/models" if base_url.endswith("/v1") else f"{base_url}/v1/models"
             headers = {}
             api_key = variables.get("VLLM_API_KEY")
             if api_key:
                 headers["Authorization"] = f"Bearer {api_key}"
 
-            response = requests.get(f"{base_url}/v1/models", headers=headers, timeout=5)
+            response = requests.get(models_url, headers=headers, timeout=5)
             if response.status_code in (401, 403):
                 msg = "Authentication failed for vLLM server. Check VLLM_API_KEY."
                 logger.error(msg)
