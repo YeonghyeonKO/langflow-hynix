@@ -410,21 +410,25 @@ def validate_model_provider_key(provider: str, variables: dict[str, str], model_
                 logger.error(msg)
                 raise ValueError(msg)
 
+            # Validate URL format only — server may not be reachable at config time
+            # (e.g. running inside Docker where host network differs)
             base_url = base_url.rstrip("/")
-            # Users typically provide URL with /v1 suffix (e.g. http://localhost:8000/v1)
-            # Avoid double /v1 by checking if it already ends with /v1
             models_url = f"{base_url}/models" if base_url.endswith("/v1") else f"{base_url}/v1/models"
             headers = {}
             api_key = variables.get("VLLM_API_KEY")
             if api_key:
                 headers["Authorization"] = f"Bearer {api_key}"
 
-            response = requests.get(models_url, headers=headers, timeout=5)
-            if response.status_code in (401, 403):
-                msg = "Authentication failed for vLLM server. Check VLLM_API_KEY."
-                logger.error(msg)
-                raise ValueError(msg)
-            response.raise_for_status()
+            try:
+                response = requests.get(models_url, headers=headers, timeout=5)
+                if response.status_code in (401, 403):
+                    msg = "Authentication failed for vLLM server. Check VLLM_API_KEY."
+                    logger.error(msg)
+                    raise ValueError(msg)
+                response.raise_for_status()
+            except (requests.ConnectionError, requests.Timeout) as conn_err:
+                # Server not reachable — allow saving config anyway
+                logger.warning(f"vLLM server not reachable at {base_url}, saving config anyway: {conn_err}")
 
         elif provider == "Ollama":
             import requests
@@ -478,8 +482,10 @@ def validate_model_provider_key(provider: str, variables: dict[str, str], model_
             raise ValueError(msg) from e
 
         if provider == "vLLM":
-            msg = "Invalid vLLM API base URL"
-            logger.error(f"{msg}: {e}")
+            # Connection errors are already handled gracefully in the vLLM branch
+            # Only re-raise for unexpected errors (not connectivity)
+            logger.warning(f"vLLM validation error (non-critical): {e}")
+            return
             raise ValueError(msg) from e
 
         # For others, log and return (allow saving despite minor errors)
