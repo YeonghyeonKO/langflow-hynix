@@ -32,13 +32,21 @@
 
 ### Frontend
 - 한글 IME 자모분리 이슈 수정
+- 한국어 로케일 (ko.json) 추가 + loadLanguage fallback
 - SSO 버튼 텍스트 동적 설정
-- Get Started 템플릿 커스터마이징 (반도체 공정 도우미, 사내 문서 검색, 데이터 분석 에이전트)
 - Playground 사이드바 모드 복원 (풀스크린 자동전환 제거)
 - 외부 API 번들 제거 (사이드바 + 검색 필터), 로컬/자체호스팅 번들만 유지
 - Discord, X(Twitter) 아이콘/링크 제거
 - SSO/non-SSO 로그인 페이지 통합 (SSO → SSO 버튼, non-SSO → id/pw 폼)
 - Logout: SSO 시 Keycloak logout, non-SSO 시 표준 logout
+
+### Model Providers
+- vLLM을 기본 Model Provider로 추가 (Settings → Model Providers)
+- vLLM 서버 /v1/models API 동적 모델 조회
+- vLLM Embeddings 지원 (EMBEDDING_PROVIDER_CLASS_MAPPING)
+- "Available Models" 통합 표시 (LLM/Embedding 구분 없이)
+- API Key optional (로컬 서버 지원)
+- 친절한 에러 메시지 (연결 실패, 인증 오류, 타임아웃 구분)
 
 ### Docker / CI
 - `docker/keycloak-sso.Dockerfile` — SSO 플러그인 포함 이미지
