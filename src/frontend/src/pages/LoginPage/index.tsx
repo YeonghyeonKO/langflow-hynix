@@ -37,12 +37,9 @@ export default function LoginPage(): JSX.Element {
   const [searchParams] = useSearchParams();
   const errorCode = searchParams.get("error");
   const employeeId = searchParams.get("employee");
-  const adminParam = searchParams.get("admin") === "true";
-
-  const [showAdminLogin, setShowAdminLogin] = useState(adminParam);
 
   const { data: keycloakConfig } = useGetKeycloakConfig();
-  const ssoEnabled = keycloakConfig?.enabled === true && !showAdminLogin;
+  const ssoEnabled = keycloakConfig?.enabled === true;
 
   const { login, clearAuthSession } = useContext(AuthContext);
   const setErrorData = useAlertStore((state) => state.setErrorData);
@@ -112,13 +109,6 @@ export default function LoginPage(): JSX.Element {
               {keycloakConfig.button_text ?? "SK하이닉스 SSO 로그인"}
             </Button>
           </div>
-          <button
-            type="button"
-            className="mt-4 text-xs text-muted-foreground hover:text-primary transition-colors"
-            onClick={() => setShowAdminLogin(true)}
-          >
-            관리자 로그인
-          </button>
         </div>
       </div>
     );
