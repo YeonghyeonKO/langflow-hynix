@@ -379,7 +379,10 @@ def fetch_live_vllm_models(user_id: UUID | str | None, model_type: str = "llm") 
     if not base_url:
         return []
 
-    api_key = get_provider_variable_value(user_id, "VLLM_API_KEY")
+    try:
+        api_key = get_provider_variable_value(user_id, "VLLM_API_KEY")
+    except (ValueError, Exception):  # noqa: BLE001
+        api_key = None  # API key is optional for vLLM
 
     try:
         base_url = base_url.rstrip("/")
