@@ -426,9 +426,14 @@ def validate_model_provider_key(provider: str, variables: dict[str, str], model_
                     logger.error(msg)
                     raise ValueError(msg)
                 response.raise_for_status()
-            except (requests.ConnectionError, requests.Timeout) as conn_err:
-                # Server not reachable — allow saving config anyway
-                logger.warning(f"vLLM server not reachable at {base_url}, saving config anyway: {conn_err}")
+            except requests.ConnectionError:
+                msg = f"Could not connect to vLLM server at {base_url}. Please check that the server is running and the URL is correct."
+                logger.error(msg)
+                raise ValueError(msg)
+            except requests.Timeout:
+                msg = f"Connection to vLLM server at {base_url} timed out. Please check that the server is running and responsive."
+                logger.error(msg)
+                raise ValueError(msg)
 
         elif provider == "Ollama":
             import requests
@@ -482,10 +487,9 @@ def validate_model_provider_key(provider: str, variables: dict[str, str], model_
             raise ValueError(msg) from e
 
         if provider == "vLLM":
-            # Connection errors are already handled gracefully in the vLLM branch
-            # Only re-raise for unexpected errors (not connectivity)
-            logger.warning(f"vLLM validation error (non-critical): {e}")
-            return
+            msg = f"Failed to validate vLLM server: {e}"
+            logger.error(msg)
+            raise ValueError(msg) from e
             raise ValueError(msg) from e
 
         # For others, log and return (allow saving despite minor errors)
