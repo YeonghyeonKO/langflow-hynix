@@ -426,14 +426,20 @@ def validate_model_provider_key(provider: str, variables: dict[str, str], model_
                     logger.error(msg)
                     raise ValueError(msg)
                 response.raise_for_status()
-            except requests.ConnectionError:
-                msg = f"Could not connect to vLLM server at {base_url}. Please check that the server is running and the URL is correct."
+            except requests.ConnectionError as e:
+                msg = (
+                    f"Could not connect to vLLM server at {base_url}. "
+                    "Please check that the server is running and the URL is correct."
+                )
                 logger.error(msg)
-                raise ValueError(msg)
-            except requests.Timeout:
-                msg = f"Connection to vLLM server at {base_url} timed out. Please check that the server is running and responsive."
+                raise ValueError(msg) from e
+            except requests.Timeout as e:
+                msg = (
+                    f"Connection to vLLM server at {base_url} timed out. "
+                    "Please check that the server is running and responsive."
+                )
                 logger.error(msg)
-                raise ValueError(msg)
+                raise ValueError(msg) from e
 
         elif provider == "Ollama":
             import requests
@@ -489,7 +495,6 @@ def validate_model_provider_key(provider: str, variables: dict[str, str], model_
         if provider == "vLLM":
             msg = f"Failed to validate vLLM server: {e}"
             logger.error(msg)
-            raise ValueError(msg) from e
             raise ValueError(msg) from e
 
         # For others, log and return (allow saving despite minor errors)
