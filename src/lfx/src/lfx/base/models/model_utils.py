@@ -365,28 +365,17 @@ def fetch_live_watsonx_models(user_id: UUID | str | None, model_type: str = "llm
         return []
 
 
-# Keywords that indicate an embedding model (case-insensitive)
-_EMBEDDING_MODEL_KEYWORDS = (
-    "embed", "bge", "e5-", "e5_", "minilm", "nomic-embed",
-    "jina-embed", "gte-", "instructor", "sentence-transformer",
-)
-
-
-def _is_embedding_model(model_name: str) -> bool:
-    """Heuristic: classify a model as embeddings based on its name."""
-    name_lower = model_name.lower()
-    return any(kw in name_lower for kw in _EMBEDDING_MODEL_KEYWORDS)
-
-
 def fetch_live_vllm_models(user_id: UUID | str | None, model_type: str = "llm") -> list[dict]:
     """Fetch live models from a vLLM server via OpenAI-compatible /v1/models API.
 
-    Models are classified as "llm" or "embeddings" by name heuristic since the
-    vLLM API does not expose model capabilities.
+    vLLM's API does not distinguish between LLM and embedding models, so all
+    available models are returned regardless of the requested model_type. This
+    allows users to select any vLLM-served model in both Language Model and
+    Embedding Model contexts.
 
     Args:
         user_id: The user ID to look up the vLLM base URL and API key
-        model_type: "llm" or "embeddings"
+        model_type: "llm" or "embeddings" — used for tagging only, no filtering
 
     Returns:
         List of model metadata dicts, or empty list if unable to fetch
@@ -411,13 +400,7 @@ def fetch_live_vllm_models(user_id: UUID | str | None, model_type: str = "llm") 
         response.raise_for_status()
         data = response.json()
 
-        all_models = sorted(m.get("id", "") for m in data.get("data", []) if m.get("id"))
-
-        # Filter models by inferred type
-        if model_type == "embeddings":
-            filtered = [n for n in all_models if _is_embedding_model(n)]
-        else:
-            filtered = [n for n in all_models if not _is_embedding_model(n)]
+        model_names = sorted(m.get("id", "") for m in data.get("data", []) if m.get("id"))
 
         return [
             create_model_metadata(
@@ -428,7 +411,7 @@ def fetch_live_vllm_models(user_id: UUID | str | None, model_type: str = "llm") 
                 tool_calling=model_type == "llm",
                 default=i < MIN_DEFAULT_MODELS,
             )
-            for i, name in enumerate(filtered)
+            for i, name in enumerate(model_names)
         ]
     except Exception:  # noqa: BLE001
         logger.debug(f"Could not fetch live vLLM {model_type} models from {base_url}")
