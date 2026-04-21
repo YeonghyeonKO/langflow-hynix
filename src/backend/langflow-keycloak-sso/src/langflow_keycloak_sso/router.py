@@ -165,7 +165,11 @@ async def keycloak_callback(
         employee_number = str(access_claims.get(s.EMPLOYEE_CLAIM, ""))
 
     # 3d. Per-instance employee check (ingress-based deployment)
-    if s.ALLOWED_EMPLOYEE:
+    #     Admin employees bypass this restriction.
+    admin_set = {e.strip().upper() for e in s.ADMIN_EMPLOYEES.split(",") if e.strip()}
+    is_admin = employee_number and employee_number.upper() in admin_set
+
+    if s.ALLOWED_EMPLOYEE and not is_admin:
         if not employee_number:
             return RedirectResponse(
                 url="/login?error=no_employee_id",
