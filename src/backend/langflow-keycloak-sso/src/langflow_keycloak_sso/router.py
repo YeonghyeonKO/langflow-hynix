@@ -169,13 +169,15 @@ async def keycloak_callback(
     admin_set = {e.strip().upper() for e in s.ADMIN_EMPLOYEES.split(",") if e.strip()}
     is_admin = employee_number and employee_number.upper() in admin_set
 
-    if s.ALLOWED_EMPLOYEE and not is_admin:
+    allowed_set = {e.strip().upper() for e in s.ALLOWED_EMPLOYEE.split(",") if e.strip()}
+
+    if allowed_set and not is_admin:
         if not employee_number:
             return RedirectResponse(
                 url="/login?error=no_employee_id",
                 status_code=status.HTTP_302_FOUND,
             )
-        if employee_number.upper() != s.ALLOWED_EMPLOYEE.upper():
+        if employee_number.upper() not in allowed_set:
             return RedirectResponse(
                 url=f"/login?error=unauthorized&employee={employee_number}",
                 status_code=status.HTTP_302_FOUND,

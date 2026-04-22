@@ -83,7 +83,7 @@ spec:
               value: {{ .Values.keycloak.sharedUsername | quote }}
             {{- end }}
             - name: KEYCLOAK_ALLOWED_EMPLOYEE
-              value: {{ .Values.keycloak.allowedEmployee | default .Values.instanceName | quote }}
+              value: {{ if .Values.keycloak.allowedEmployee }}{{ printf "%s,%s" .Values.instanceName .Values.keycloak.allowedEmployee | quote }}{{ else }}{{ .Values.instanceName | quote }}{{ end }}
             {{- if .Values.keycloak.hcpApiUrl }}
             - name: KEYCLOAK_HCP_API_URL
               value: {{ .Values.keycloak.hcpApiUrl | quote }}
