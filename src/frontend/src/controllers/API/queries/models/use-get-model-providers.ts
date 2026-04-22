@@ -85,6 +85,7 @@ const getProviderIcon = (providerName: string): string => {
     SambaNova: "SambaNova",
     Ollama: "Ollama",
     vLLM: "vLLM",
+    "vLLM Embeddings": "vLLM",
     "IBM WatsonX": "IBM",
     "IBM watsonx.ai": "IBM",
   };

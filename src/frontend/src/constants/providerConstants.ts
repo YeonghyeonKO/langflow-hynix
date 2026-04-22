@@ -31,6 +31,7 @@ export const PROVIDER_VARIABLE_MAPPING: Record<string, string> = {
   Google: "GOOGLE_API_KEY",
   Ollama: "OLLAMA_BASE_URL",
   vLLM: "VLLM_API_BASE",
+  "vLLM Embeddings": "VLLM_EMBEDDINGS_API_BASE",
   "IBM WatsonX": "WATSONX_APIKEY",
   Cohere: "COHERE_API_KEY",
   HuggingFace: "HUGGINGFACEHUB_API_TOKEN",

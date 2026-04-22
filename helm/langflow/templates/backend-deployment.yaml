@@ -7,6 +7,8 @@ metadata:
     app.kubernetes.io/component: backend
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       {{- include "langflow.backendSelectorLabels" . | nindent 6 }}
@@ -15,6 +17,7 @@ spec:
       labels:
         {{- include "langflow.backendSelectorLabels" . | nindent 8 }}
     spec:
+      terminationGracePeriodSeconds: {{ .Values.langflow.terminationGracePeriodSeconds | default 60 }}
       {{- with (include "langflow.imagePullSecrets" . | trim) }}
       imagePullSecrets:
         {{- . | nindent 8 }}

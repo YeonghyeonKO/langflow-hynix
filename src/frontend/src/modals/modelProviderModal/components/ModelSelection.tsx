@@ -106,7 +106,7 @@ const ModelSelection = ({
   };
 
   const isOllama = providerName?.toLowerCase() === "ollama";
-  const isVllm = providerName?.toLowerCase() === "vllm";
+  const isVllm = providerName?.toLowerCase() === "vllm" || providerName?.toLowerCase() === "vllm embeddings";
   const noModelsAvailable =
     (modelType === "llm" && llmModels.length === 0) ||
     (modelType === "embeddings" && embeddingModels.length === 0) ||
