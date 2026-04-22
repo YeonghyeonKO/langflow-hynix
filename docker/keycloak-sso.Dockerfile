@@ -105,6 +105,10 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 RUN mkdir -p /app/data && chown -R 1000:0 /app/data && chown 1000:0 /app
 
+# ── Tiktoken cache (air-gapped 환경용) ──────────────────────────────────────
+COPY docker/tiktoken_cache /app/tiktoken_cache
+ENV TIKTOKEN_CACHE_DIR=/app/tiktoken_cache
+
 LABEL org.opencontainers.image.title="langflow-keycloak-sso"
 LABEL org.opencontainers.image.description="Langflow with Keycloak SSO plugin"
 LABEL org.opencontainers.image.licenses=MIT
