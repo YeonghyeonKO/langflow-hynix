@@ -565,8 +565,10 @@ def replace_with_live_models(
 
         if provider in ("vLLM", "vLLM Embeddings"):
             # vLLM / vLLM Embeddings return all models regardless of type (no type distinction),
-            # so fetch once to avoid duplicates
-            live_models = get_live_models_for_provider(user_id, provider, model_type or "llm")
+            # so fetch once to avoid duplicates.
+            # Default type: "embeddings" for vLLM Embeddings, "llm" for vLLM.
+            default_type = "embeddings" if provider == "vLLM Embeddings" else "llm"
+            live_models = get_live_models_for_provider(user_id, provider, model_type or default_type)
         elif model_type is None:
             live_llm = get_live_models_for_provider(user_id, provider, "llm")
             live_emb = get_live_models_for_provider(user_id, provider, "embeddings")
