@@ -26,7 +26,7 @@ const ProviderList = ({
 
   const filteredProviders: Provider[] = useMemo(() => {
     return rawProviders.map((provider) => {
-      const isVllm = provider?.provider?.toLowerCase() === "vllm";
+      const isVllm = provider?.provider?.toLowerCase() === "vllm" || provider?.provider?.toLowerCase() === "vllm embeddings";
       const matchingModels =
         provider?.models?.filter((model) =>
           modelType === "all" || isVllm

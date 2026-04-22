@@ -75,6 +75,7 @@ langflow:
   accessSecure: "false"
   accessSameSite: "lax"
   databaseUrl: ""          # leave empty for default SQLite
+  terminationGracePeriodSeconds: 60
 
 # -- NFS PersistentVolume
 nfs:

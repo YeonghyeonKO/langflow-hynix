@@ -191,7 +191,7 @@ export default function ModelInputComponent({
           // don't regress providers that haven't adopted the tag yet.
           // vLLM models skip type filtering — vLLM API doesn't distinguish
           // between LLM and embedding models.
-          const isVllmProvider = providerName.toLowerCase() === "vllm";
+          const isVllmProvider = providerName.toLowerCase() === "vllm" || providerName.toLowerCase() === "vllm embeddings";
           const modelMetadataType = (
             model.metadata as Record<string, unknown> | undefined
           )?.model_type;
