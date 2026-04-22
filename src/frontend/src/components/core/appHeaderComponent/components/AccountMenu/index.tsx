@@ -104,22 +104,7 @@ export const AccountMenu = () => {
               </span>
             </HeaderMenuItemButton>
 
-            {isAdmin && !autoLogin && (
-              <div>
-                <HeaderMenuItemButton
-                  onClick={() => {
-                    navigate("/admin");
-                  }}
-                >
-                  <span
-                    data-testid="menu_admin_page_button"
-                    id="menu_admin_page_button"
-                  >
-                    {t("account.adminPage")}
-                  </span>
-                </HeaderMenuItemButton>
-              </div>
-            )}
+            {/* Admin Page button hidden to prevent accidental privilege changes */}
             <HeaderMenuItemLink
               newPage
               href={ENABLE_DATASTAX_LANGFLOW ? DATASTAX_DOCS_URL : DOCS_URL}
