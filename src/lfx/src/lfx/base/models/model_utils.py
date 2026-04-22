@@ -413,7 +413,14 @@ def fetch_live_vllm_models(user_id: UUID | str | None, model_type: str = "llm") 
         response.raise_for_status()
         data = response.json()
 
-        model_names = sorted(m.get("id", "") for m in data.get("data", []) if m.get("id"))
+        # Support both OpenAI-compatible format {"data": [{"id": "..."}]}
+        # and simple list format ["model1", "model2"]
+        if isinstance(data, list):
+            model_names = sorted(str(m) for m in data if m)
+        elif isinstance(data, dict) and "data" in data:
+            model_names = sorted(m.get("id", "") for m in data["data"] if m.get("id"))
+        else:
+            model_names = []
 
         return [
             create_model_metadata(
