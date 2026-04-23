@@ -17,6 +17,14 @@ backend:
     limits:
       cpu: "2"
       memory: 4Gi
+  readinessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 15
+    timeoutSeconds: 5
+  livenessProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 30
+    timeoutSeconds: 10
   # -- Extra environment variables for the backend
   extraEnv: []
 
