@@ -280,6 +280,10 @@ class KnowledgeBaseComponent(Component):
 
             all_vars = provider_vars or {}
             base_url = all_vars.get("VLLM_EMBEDDINGS_API_BASE")
+            if base_url:
+                base_url = base_url.rstrip("/")
+                if not base_url.endswith("/v1"):
+                    base_url = f"{base_url}/v1"
             vllm_kwargs: dict = {
                 "model": model,
                 "api_key": api_key or "no-key",
