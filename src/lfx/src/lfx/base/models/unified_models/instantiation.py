@@ -370,6 +370,9 @@ def get_embeddings(
             or os.environ.get("VLLM_EMBEDDINGS_API_BASE")
         )
         if base_url_value:
+            base_url_value = base_url_value.rstrip("/")
+            if not base_url_value.endswith("/v1"):
+                base_url_value = f"{base_url_value}/v1"
             kwargs[param_mapping["api_base"]] = base_url_value
 
     # Add optional parameters if they have values and are mapped
