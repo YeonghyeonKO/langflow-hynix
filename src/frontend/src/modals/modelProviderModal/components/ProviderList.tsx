@@ -31,13 +31,16 @@ const ProviderList = ({
     return rawProviders.filter((provider) =>
       ALLOWED_PROVIDERS.includes(provider?.provider?.toLowerCase() ?? ""),
     ).map((provider) => {
-      const isVllm = provider?.provider?.toLowerCase() === "vllm" || provider?.provider?.toLowerCase() === "vllm embeddings";
+      const providerLower = provider?.provider?.toLowerCase() ?? "";
+      const isVllm = providerLower === "vllm";
+      const isVllmEmbeddings = providerLower === "vllm embeddings";
       const matchingModels =
-        provider?.models?.filter((model) =>
-          modelType === "all" || isVllm
-            ? true
-            : model?.metadata?.model_type === modelType,
-        ) || [];
+        provider?.models?.filter((model) => {
+          if (modelType === "all") return true;
+          if (isVllm) return modelType === "llm";
+          if (isVllmEmbeddings) return modelType === "embeddings";
+          return model?.metadata?.model_type === modelType;
+        }) || [];
 
       return {
         provider: provider.provider,
