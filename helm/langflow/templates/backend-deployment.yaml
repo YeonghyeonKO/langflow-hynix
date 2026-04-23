@@ -92,6 +92,8 @@ spec:
               value: {{ .Values.keycloak.hcpApiUrl | quote }}
             {{- end }}
             {{- end }}
+            - name: LANGFLOW_STORE
+              value: {{ .Values.langflow.store | default "false" | quote }}
             {{- if .Values.ssl.enabled }}
             - name: SSL_CERT_FILE
               value: /etc/ssl/custom/{{ .Values.ssl.key }}
