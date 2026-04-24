@@ -110,6 +110,14 @@ spec:
               {{- if .Values.nfs.enabled }}
               subPath: {{ include "langflow.fullname" . }}
               {{- end }}
+            {{- if .Values.nfsVolumes.flow.enabled }}
+            - name: nfs-flow
+              mountPath: {{ .Values.nfsVolumes.flow.mountPath | default "/app/flow" }}
+            {{- end }}
+            {{- if .Values.nfsVolumes.component.enabled }}
+            - name: nfs-component
+              mountPath: {{ .Values.nfsVolumes.component.mountPath | default "/app/custom_components" }}
+            {{- end }}
             {{- if .Values.ssl.enabled }}
             - name: ca-cert
               mountPath: /etc/ssl/custom
@@ -137,6 +145,18 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: {{ include "langflow.fullname" . }}-data
+        {{- if .Values.nfsVolumes.flow.enabled }}
+        - name: nfs-flow
+          nfs:
+            server: {{ .Values.nfsVolumes.flow.server }}
+            path: {{ .Values.nfsVolumes.flow.path }}
+        {{- end }}
+        {{- if .Values.nfsVolumes.component.enabled }}
+        - name: nfs-component
+          nfs:
+            server: {{ .Values.nfsVolumes.component.server }}
+            path: {{ .Values.nfsVolumes.component.path }}
+        {{- end }}
         {{- if .Values.ssl.enabled }}
         - name: ca-cert
           {{- include "langflow.sslVolume" . | nindent 10 }}
