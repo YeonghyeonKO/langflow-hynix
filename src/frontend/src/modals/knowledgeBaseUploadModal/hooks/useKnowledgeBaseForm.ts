@@ -294,7 +294,7 @@ export function useKnowledgeBaseForm({
     }
     const totalBytes = files.reduce((acc, file) => acc + file.size, 0);
     if (totalBytes > MAX_TOTAL_FILE_SIZE) {
-      errors.files = "Total file size exceeds the 1 GB limit";
+      errors.files = "Total file size exceeds the 20 MB limit";
     }
     return errors;
   }, [

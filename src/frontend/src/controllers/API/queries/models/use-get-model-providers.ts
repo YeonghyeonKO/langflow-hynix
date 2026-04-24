@@ -84,6 +84,8 @@ const getProviderIcon = (providerName: string): string => {
     "Azure OpenAI": "AzureOpenAI",
     SambaNova: "SambaNova",
     Ollama: "Ollama",
+    vLLM: "vLLM",
+    "vLLM Embeddings": "vLLM",
     "IBM WatsonX": "IBM",
     "IBM watsonx.ai": "IBM",
   };

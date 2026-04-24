@@ -1,13 +1,11 @@
-import { FaDiscord, FaGithub } from "react-icons/fa";
+import { FaGithub } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
-import { ForwardedIconComponent } from "@/components/common/genericIconComponent";
 import {
   DATASTAX_DOCS_URL,
-  DISCORD_URL,
   DOCS_URL,
   GITHUB_URL,
-  TWITTER_URL,
 } from "@/constants/constants";
+import { useGetKeycloakConfig } from "@/controllers/API/queries/keycloak/use-get-keycloak-config";
 import { useLogout } from "@/controllers/API/queries/auth";
 import { CustomProfileIcon } from "@/customization/components/custom-profile-icon";
 import { ENABLE_DATASTAX_LANGFLOW } from "@/customization/feature-flags";
@@ -29,6 +27,7 @@ export const AccountMenu = () => {
   const version = useDarkStore((state) => state.version);
   const latestVersion = useDarkStore((state) => state.latestVersion);
   const navigate = useCustomNavigate();
+  const { data: keycloakConfig } = useGetKeycloakConfig();
   const { mutate: mutationLogout } = useLogout();
 
   const { isAdmin, autoLogin } = useAuthStore((state) => ({
@@ -37,7 +36,11 @@ export const AccountMenu = () => {
   }));
 
   const handleLogout = () => {
-    mutationLogout();
+    if (keycloakConfig?.enabled) {
+      window.location.href = "/api/v1/keycloak/logout";
+    } else {
+      mutationLogout();
+    }
   };
 
   const isLatestVersion = (() => {
@@ -101,22 +104,7 @@ export const AccountMenu = () => {
               </span>
             </HeaderMenuItemButton>
 
-            {isAdmin && !autoLogin && (
-              <div>
-                <HeaderMenuItemButton
-                  onClick={() => {
-                    navigate("/admin");
-                  }}
-                >
-                  <span
-                    data-testid="menu_admin_page_button"
-                    id="menu_admin_page_button"
-                  >
-                    {t("account.adminPage")}
-                  </span>
-                </HeaderMenuItemButton>
-              </div>
-            )}
+            {/* Admin Page button hidden to prevent accidental privilege changes */}
             <HeaderMenuItemLink
               newPage
               href={ENABLE_DATASTAX_LANGFLOW ? DATASTAX_DOCS_URL : DOCS_URL}
@@ -136,30 +124,6 @@ export const AccountMenu = () => {
               >
                 <FaGithub className="h-4 w-4" />
                 {t("account.github")}
-              </span>
-            </HeaderMenuItemLink>
-            <HeaderMenuItemLink newPage href={DISCORD_URL}>
-              <span
-                data-testid="menu_discord_button"
-                id="menu_discord_button"
-                className="flex items-center gap-2"
-              >
-                <FaDiscord className="h-4 w-4 text-[#5865F2]" />
-                {t("account.discord")}
-              </span>
-            </HeaderMenuItemLink>
-            <HeaderMenuItemLink newPage href={TWITTER_URL}>
-              <span
-                data-testid="menu_twitter_button"
-                id="menu_twitter_button"
-                className="flex items-center gap-2"
-              >
-                <ForwardedIconComponent
-                  strokeWidth={2}
-                  name="TwitterX"
-                  className="h-4 w-4"
-                />
-                {t("account.twitter")}
               </span>
             </HeaderMenuItemLink>
           </div>

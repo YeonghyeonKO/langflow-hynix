@@ -3299,13 +3299,13 @@
       "zoom": 0.4822811237334345
     }
   },
-  "description": "Load your data for chat context with Retrieval Augmented Generation.",
+  "description": "사내 기술 문서를 벡터 DB에 저장하고 RAG로 검색하는 시스템입니다.",
   "endpoint_name": null,
   "id": "b638aa7b-d928-4b0c-9b2b-4f3b0c5343a3",
   "is_component": false,
   "last_tested_version": "1.9.0",
   "locked": false,
-  "name": "Vector Store RAG",
+  "name": "사내 문서 검색",
   "tags": [
     "openai",
     "knowledge-base",
