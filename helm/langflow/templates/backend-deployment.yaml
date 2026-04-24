@@ -22,8 +22,9 @@ spec:
       imagePullSecrets:
         {{- . | nindent 8 }}
       {{- end }}
-      {{- if .Values.nfs.enabled }}
+      {{- if or .Values.nfs.enabled .Values.nfsVolumes.flow.enabled .Values.nfsVolumes.component.enabled }}
       initContainers:
+        {{- if .Values.nfs.enabled }}
         - name: nfs-init
           image: {{ .Values.nfs.initImage }}
           command:
@@ -33,6 +34,23 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /mnt/nfs
+        {{- end }}
+        {{- if .Values.nfsVolumes.flow.enabled }}
+        - name: nfs-flow-init
+          image: {{ .Values.nfs.initImage | default "busybox:1.36" }}
+          command: ["sh", "-c", "chmod 777 /mnt/nfs"]
+          volumeMounts:
+            - name: nfs-flow
+              mountPath: /mnt/nfs
+        {{- end }}
+        {{- if .Values.nfsVolumes.component.enabled }}
+        - name: nfs-component-init
+          image: {{ .Values.nfs.initImage | default "busybox:1.36" }}
+          command: ["sh", "-c", "chmod 777 /mnt/nfs"]
+          volumeMounts:
+            - name: nfs-component
+              mountPath: /mnt/nfs
+        {{- end }}
       {{- end }}
       containers:
         - name: backend
@@ -113,12 +131,10 @@ spec:
             {{- if .Values.nfsVolumes.flow.enabled }}
             - name: nfs-flow
               mountPath: {{ .Values.nfsVolumes.flow.mountPath | default "/app/flow" }}
-              subPath: {{ include "langflow.fullname" . }}
             {{- end }}
             {{- if .Values.nfsVolumes.component.enabled }}
             - name: nfs-component
               mountPath: {{ .Values.nfsVolumes.component.mountPath | default "/app/custom_components" }}
-              subPath: {{ include "langflow.fullname" . }}
             {{- end }}
             {{- if .Values.ssl.enabled }}
             - name: ca-cert
