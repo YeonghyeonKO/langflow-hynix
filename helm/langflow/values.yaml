@@ -92,12 +92,12 @@ nfsVolumes:
     enabled: false
     server: ""               # e.g. nas.company.com
     path: "/langflow/prd/flow"
-    mountPath: /app/.venv/lib/python3.12/site-packages/lfx/flows/company
+    mountPath: /app/flow
   component:
     enabled: false
     server: ""               # e.g. nas.company.com
     path: "/langflow/prd/component"
-    mountPath: /app/.venv/lib/python3.12/site-packages/lfx/components/company/component
+    mountPath: /app/custom_components
 
 # -- NFS PersistentVolume
 nfs:
