@@ -62,13 +62,13 @@ separateFrontend: true
 backend:
   image:
     repository: dk02315/langflow-hynix
-    tag: v1.9.0-hynix-rc2
-    ssoTag: v1.9.0-hynix-sso-rc2
+    tag: v1.9.0-hynix-rc28
+    ssoTag: v1.9.0-hynix-sso-rc28
 
 frontend:
   image:
     repository: dk02315/langflow-hynix-frontend
-    tag: v1.9.0-hynix-rc2
+    tag: v1.9.0-hynix-rc28
 
 keycloak:
   enabled: true
@@ -134,7 +134,7 @@ kubectl delete namespace langflow-2074795
 | `instanceName` | 인스턴스 이름 (필수, 리소스 이름/호스트명에 사용) | `""` |
 | `separateFrontend` | BE/FE 분리 배포 여부 | `true` |
 
-### Backend 이미지
+### Backend
 
 | 파라미터 | 설명 | 기본값 |
 |---------|------|--------|
@@ -144,8 +144,14 @@ kubectl delete namespace langflow-2074795
 | `backend.image.pullPolicy` | 이미지 pull 정책 | `IfNotPresent` |
 | `backend.resources` | CPU/메모리 리소스 | requests: 500m/1Gi, limits: 2/4Gi |
 | `backend.extraEnv` | 추가 환경변수 | `[]` |
+| `backend.readinessProbe.initialDelaySeconds` | Readiness 초기 지연 | `30` |
+| `backend.readinessProbe.periodSeconds` | Readiness 체크 주기 | `15` |
+| `backend.readinessProbe.timeoutSeconds` | Readiness 타임아웃 | `5` |
+| `backend.livenessProbe.initialDelaySeconds` | Liveness 초기 지연 | `60` |
+| `backend.livenessProbe.periodSeconds` | Liveness 체크 주기 | `30` |
+| `backend.livenessProbe.timeoutSeconds` | Liveness 타임아웃 | `10` |
 
-### Frontend 이미지
+### Frontend
 
 | 파라미터 | 설명 | 기본값 |
 |---------|------|--------|
@@ -180,7 +186,7 @@ kubectl delete namespace langflow-2074795
 | `keycloak.employeeClaim` | 사원번호 추출 토큰 클레임 | `preferred_username` |
 | `keycloak.buttonText` | 로그인 버튼 텍스트 | `SK하이닉스 SSO 로그인` |
 | `keycloak.sharedUsername` | 공유 프로젝트 계정 | `""` |
-| `keycloak.allowedEmployee` | 특정 사원만 접근 허용 | `""` |
+| `keycloak.allowedEmployee` | 특정 사원만 접근 허용 (쉼표 구분) | `""` |
 | `keycloak.hcpApiUrl` | HCP API URL (프로젝트 권한 검증) | `""` |
 
 ### Langflow
@@ -192,6 +198,8 @@ kubectl delete namespace langflow-2074795
 | `langflow.storage` | PVC 크기 | `5Gi` |
 | `langflow.storageClass` | StorageClass 이름 | `""` |
 | `langflow.databaseUrl` | 외부 DB URL (빈값 → SQLite) | `""` |
+| `langflow.store` | Langflow Store API 활성화 | `"false"` |
+| `langflow.terminationGracePeriodSeconds` | Pod 종료 대기 시간 | `60` |
 | `langflow.refreshSecure` | refresh token 쿠키 Secure 플래그 | `"false"` |
 | `langflow.refreshSameSite` | refresh token 쿠키 SameSite 속성 | `"lax"` |
 | `langflow.accessSecure` | access token 쿠키 Secure 플래그 | `"false"` |
@@ -200,7 +208,43 @@ kubectl delete namespace langflow-2074795
 > HTTP 환경: `*Secure: "false"`, `*SameSite: "lax"`
 > HTTPS 환경: `*Secure: "true"`, `*SameSite: "none"`
 
-### NFS 스토리지
+> Air-gapped 환경에서는 `langflow.store: "false"` (기본값)로 외부 API 호출을 차단합니다.
+
+### NFS 직접 마운트 (flow 데이터 & 커스텀 컴포넌트)
+
+| 파라미터 | 설명 | 기본값 |
+|---------|------|--------|
+| `nfsVolumes.flow.enabled` | Flow 데이터 NFS 마운트 | `false` |
+| `nfsVolumes.flow.server` | NFS 서버 주소 | `""` |
+| `nfsVolumes.flow.path` | NFS 경로 | `"/langflow/prd/flow"` |
+| `nfsVolumes.flow.mountPath` | 컨테이너 내 마운트 경로 | `/app/flow` |
+| `nfsVolumes.component.enabled` | 커스텀 컴포넌트 NFS 마운트 | `false` |
+| `nfsVolumes.component.server` | NFS 서버 주소 | `""` |
+| `nfsVolumes.component.path` | NFS 경로 | `"/langflow/prd/component"` |
+| `nfsVolumes.component.mountPath` | 컨테이너 내 마운트 경로 | `/app/custom_components` |
+
+사용 예시:
+
+```yaml
+nfsVolumes:
+  flow:
+    enabled: true
+    server: "nas.company.com"
+    path: "/langflow/prd/flow"
+    mountPath: /app/flow
+  component:
+    enabled: true
+    server: "nas.company.com"
+    path: "/langflow/prd/component"
+    mountPath: /app/custom_components
+
+backend:
+  extraEnv:
+    - name: LANGFLOW_COMPONENTS_PATH
+      value: /app/custom_components
+```
+
+### NFS PersistentVolume (SQLite 데이터)
 
 | 파라미터 | 설명 | 기본값 |
 |---------|------|--------|
@@ -216,6 +260,8 @@ kubectl delete namespace langflow-2074795
 - 메인 컨테이너는 `subPath: langflow-<instanceName>`로 해당 디렉토리만 사용
 
 > `basePath`는 NFS 서버에 이미 존재해야 합니다. 하위 디렉토리는 자동 생성됩니다.
+
+> SQLite 손상 방지: Deployment strategy가 `Recreate`로 설정되어 있어 업그레이드 시 기존 Pod가 완전히 종료된 후 새 Pod가 시작됩니다. `terminationGracePeriodSeconds`(기본 60초)로 graceful shutdown 시간을 확보합니다.
 
 ### SSL 인증서
 
@@ -250,3 +296,12 @@ for EMPNO in 2074795 2073215 2071234; do
     --set instanceName=${EMPNO}
 done
 ```
+
+## Air-gapped 환경 배포 참고
+
+Air-gapped(네트워크 차단) 환경에서 배포 시:
+
+1. **Langflow Store 비활성화**: `langflow.store: "false"` (기본값) — 외부 API 호출 차단
+2. **SSL 인증서**: `ssl.enabled: true` + `ssl.caCert` — 사내 PKI CA 인증서 마운트
+3. **tiktoken 캐시**: Docker 이미지에 `cl100k_base.tiktoken`이 번들되어 있어 오프라인에서도 Knowledge Base 임베딩이 동작합니다
+4. **Private Registry**: `imageRegistry` 또는 `imagePullSecrets`로 사내 레지스트리 인증
