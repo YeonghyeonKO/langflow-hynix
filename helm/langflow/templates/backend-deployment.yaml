@@ -113,10 +113,12 @@ spec:
             {{- if .Values.nfsVolumes.flow.enabled }}
             - name: nfs-flow
               mountPath: {{ .Values.nfsVolumes.flow.mountPath | default "/app/flow" }}
+              subPath: {{ include "langflow.fullname" . }}
             {{- end }}
             {{- if .Values.nfsVolumes.component.enabled }}
             - name: nfs-component
               mountPath: {{ .Values.nfsVolumes.component.mountPath | default "/app/custom_components" }}
+              subPath: {{ include "langflow.fullname" . }}
             {{- end }}
             {{- if .Values.ssl.enabled }}
             - name: ca-cert
