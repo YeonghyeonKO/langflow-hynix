@@ -102,10 +102,13 @@ def get_llm(
         temperature = None
 
     # Build kwargs dynamically
+    # vLLM doesn't require an API key but ChatOpenAI raises if none is
+    # provided and OPENAI_API_KEY is unset. Pass a dummy value.
+    resolved_api_key = api_key or ("dummy" if provider in {"vLLM", "vLLM Embeddings"} else api_key)
     kwargs = {
         model_name_param: model_name,
         "streaming": stream,
-        api_key_param: api_key,
+        api_key_param: resolved_api_key,
     }
 
     if temperature is not None:
@@ -288,8 +291,14 @@ def get_embeddings(
         kwargs[param_mapping["model_id"]] = model_name
 
     # API key
-    if "api_key" in param_mapping and api_key:
-        kwargs[param_mapping["api_key"]] = api_key
+    # vLLM / vLLM Embeddings don't require an API key but OpenAIEmbeddings
+    # raises if none is provided and OPENAI_API_KEY is unset.
+    # Pass a dummy value so the client constructor succeeds.
+    if "api_key" in param_mapping:
+        if api_key:
+            kwargs[param_mapping["api_key"]] = api_key
+        elif provider in {"vLLM", "vLLM Embeddings"}:
+            kwargs[param_mapping["api_key"]] = "dummy"
 
     # Optional parameters - only add when both a value is supplied *and* the
     # provider's param_mapping declares the corresponding key.
