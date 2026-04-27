@@ -370,6 +370,13 @@ def get_embeddings(
         )
         kwargs[param_mapping["base_url"]] = base_url_value
 
+    # vLLM / vLLM Embeddings: disable tiktoken tokenization to avoid
+    # downloading encoding files (fails in air-gapped environments).
+    # vLLM handles its own context limits server-side.
+    if provider in {"vLLM", "vLLM Embeddings"}:
+        kwargs["tiktoken_enabled"] = False
+        kwargs["check_embedding_ctx_length"] = False
+
     # vLLM Embeddings: resolve base_url from stored variable
     if provider == "vLLM Embeddings" and "api_base" in param_mapping:
         provider_vars = unified_models_module.get_all_variables_for_provider(user_id, provider)
