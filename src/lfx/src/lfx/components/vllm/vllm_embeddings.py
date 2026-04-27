@@ -97,7 +97,9 @@ class VllmEmbeddingsComponent(LCEmbeddingsModel):
         return OpenAIEmbeddings(
             model=self.model_name,
             base_url=self.api_base or "http://localhost:8000/v1",
-            api_key=self.api_key or None,
+            api_key=self.api_key or "dummy",
+            tiktoken_enabled=False,
+            check_embedding_ctx_length=False,
             dimensions=self.dimensions or None,
             chunk_size=self.chunk_size,
             max_retries=self.max_retries,

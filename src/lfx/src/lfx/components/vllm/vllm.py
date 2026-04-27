@@ -95,7 +95,7 @@ class VllmComponent(LCModelComponent):
     def build_model(self) -> LanguageModel:  # type: ignore[type-var]
         logger.debug(f"Executing request with vLLM model: {self.model_name}")
         parameters = {
-            "api_key": SecretStr(self.api_key).get_secret_value() if self.api_key else None,
+            "api_key": SecretStr(self.api_key).get_secret_value() if self.api_key else "dummy",
             "model_name": self.model_name,
             "max_tokens": self.max_tokens or None,
             "model_kwargs": self.model_kwargs or {},
