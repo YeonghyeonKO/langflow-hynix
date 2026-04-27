@@ -286,6 +286,8 @@ class KnowledgeBaseComponent(Component):
             vllm_kwargs: dict = {
                 "model": model,
                 "api_key": api_key or "no-key",
+                "tiktoken_enabled": False,
+                "check_embedding_ctx_length": False,
             }
             if base_url:
                 vllm_kwargs["base_url"] = base_url
