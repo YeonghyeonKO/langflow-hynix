@@ -206,6 +206,12 @@ def get_llm(
             if not vllm_base_url_value.endswith("/v1"):
                 vllm_base_url_value = f"{vllm_base_url_value}/v1"
             kwargs[base_url_param] = vllm_base_url_value
+        else:
+            msg = (
+                "vLLM requires a base URL. Please provide it in the component, "
+                "configure it globally as VLLM_API_BASE, or set the VLLM_API_BASE environment variable."
+            )
+            raise ValueError(msg)
 
     try:
         return model_class(**kwargs)
