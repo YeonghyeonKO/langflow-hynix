@@ -564,6 +564,12 @@ def replace_with_live_models(
             continue
 
         if provider in ("vLLM", "vLLM Embeddings"):
+            # vLLM is for LLM models, vLLM Embeddings is for embedding models.
+            # Skip providers that don't match the requested model type.
+            if model_type == "llm" and provider == "vLLM Embeddings":
+                continue
+            if model_type == "embeddings" and provider == "vLLM":
+                continue
             # vLLM / vLLM Embeddings return all models regardless of type (no type distinction),
             # so fetch once to avoid duplicates.
             # Default type: "embeddings" for vLLM Embeddings, "llm" for vLLM.
