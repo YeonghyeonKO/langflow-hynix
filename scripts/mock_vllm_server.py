@@ -9,7 +9,6 @@ import json
 import random
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-
 MOCK_MODELS = {
     "object": "list",
     "data": [
@@ -51,20 +50,18 @@ class MockHandler(BaseHTTPRequestHandler):
             else:
                 inputs = [str(raw_input)]
             model = body.get("model", "mock-model")
-            data = [
-                {"object": "embedding", "index": i, "embedding": fake_embedding()}
-                for i in range(len(inputs))
-            ]
+            data = [{"object": "embedding", "index": i, "embedding": fake_embedding()} for i in range(len(inputs))]
             total_tokens = sum(
-                len(t.split()) if isinstance(t, str) else len(t) if isinstance(t, list) else 1
-                for t in inputs
+                len(t.split()) if isinstance(t, str) else len(t) if isinstance(t, list) else 1 for t in inputs
             )
-            self._json_response({
-                "object": "list",
-                "data": data,
-                "model": model,
-                "usage": {"prompt_tokens": total_tokens, "total_tokens": total_tokens},
-            })
+            self._json_response(
+                {
+                    "object": "list",
+                    "data": data,
+                    "model": model,
+                    "usage": {"prompt_tokens": total_tokens, "total_tokens": total_tokens},
+                }
+            )
         else:
             self.send_response(404)
             self.end_headers()

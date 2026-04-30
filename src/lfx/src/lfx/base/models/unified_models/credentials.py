@@ -451,9 +451,7 @@ def validate_model_provider_key(provider: str, variables: dict[str, str], model_
             # Validate URL format only — server may not be reachable at config time
             # (e.g. running inside Docker where host network differs)
             base_url = base_url.rstrip("/")
-            models_url = (
-                f"{base_url}/models" if base_url.endswith("/v1") else f"{base_url}/v1/models"
-            )
+            models_url = f"{base_url}/models" if base_url.endswith("/v1") else f"{base_url}/v1/models"
             headers = {}
             api_key = variables.get("VLLM_EMBEDDINGS_API_KEY")
             if api_key:
@@ -462,10 +460,7 @@ def validate_model_provider_key(provider: str, variables: dict[str, str], model_
             try:
                 response = requests.get(models_url, headers=headers, timeout=5)
                 if response.status_code in (401, 403):
-                    msg = (
-                        "Authentication failed for vLLM Embeddings server. "
-                        "Check VLLM_EMBEDDINGS_API_KEY."
-                    )
+                    msg = "Authentication failed for vLLM Embeddings server. Check VLLM_EMBEDDINGS_API_KEY."
                     logger.error(msg)
                     raise ValueError(msg)
                 response.raise_for_status()

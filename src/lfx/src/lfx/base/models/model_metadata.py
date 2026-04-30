@@ -296,10 +296,7 @@ MODEL_PROVIDER_METADATA: dict[str, Any] = {
                     "mapping_field": "api_key",
                     "required": False,
                     "advanced": True,
-                    "info": (
-                        "Falls back to VLLM_EMBEDDINGS_API_KEY environment variable "
-                        "(optional for local servers)"
-                    ),
+                    "info": ("Falls back to VLLM_EMBEDDINGS_API_KEY environment variable (optional for local servers)"),
                 },
             },
         ],

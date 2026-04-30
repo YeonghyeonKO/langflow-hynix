@@ -38,27 +38,25 @@ class MockHandler(BaseHTTPRequestHandler):
             raw_input = body.get("input", "")
             if isinstance(raw_input, str):
                 inputs = [raw_input]
-            elif isinstance(raw_input, list) and raw_input and isinstance(raw_input[0], list):
-                inputs = raw_input
-            elif isinstance(raw_input, list):
+            elif (isinstance(raw_input, list) and raw_input and isinstance(raw_input[0], list)) or isinstance(
+                raw_input, list
+            ):
                 inputs = raw_input
             else:
                 inputs = [str(raw_input)]
             model = body.get("model", "mock-model")
-            data = [
-                {"object": "embedding", "index": i, "embedding": fake_embedding()}
-                for i in range(len(inputs))
-            ]
+            data = [{"object": "embedding", "index": i, "embedding": fake_embedding()} for i in range(len(inputs))]
             total_tokens = sum(
-                len(t.split()) if isinstance(t, str) else len(t) if isinstance(t, list) else 1
-                for t in inputs
+                len(t.split()) if isinstance(t, str) else len(t) if isinstance(t, list) else 1 for t in inputs
             )
-            self._json_response({
-                "object": "list",
-                "data": data,
-                "model": model,
-                "usage": {"prompt_tokens": total_tokens, "total_tokens": total_tokens},
-            })
+            self._json_response(
+                {
+                    "object": "list",
+                    "data": data,
+                    "model": model,
+                    "usage": {"prompt_tokens": total_tokens, "total_tokens": total_tokens},
+                }
+            )
         else:
             self.send_response(404)
             self.end_headers()
@@ -80,7 +78,7 @@ def main():
 
     server = HTTPServer(("0.0.0.0", args.port), MockHandler)
     print(f"Mock vLLM Embeddings server on http://localhost:{args.port}")
-    print(f"  GET  /v1/models     → bge-m3, multilingual-e5")
+    print("  GET  /v1/models     → bge-m3, multilingual-e5")
     print(f"  POST /v1/embeddings → {EMBEDDING_DIM}-dim fake vectors")
     server.serve_forever()
 

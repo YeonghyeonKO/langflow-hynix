@@ -198,9 +198,7 @@ def get_llm(
 
         # Priority: component value > database value > env var
         vllm_base_url_value = (
-            vllm_base_url
-            if vllm_base_url
-            else provider_vars.get("VLLM_API_BASE") or os.environ.get("VLLM_API_BASE")
+            vllm_base_url if vllm_base_url else provider_vars.get("VLLM_API_BASE") or os.environ.get("VLLM_API_BASE")
         )
         if vllm_base_url_value:
             # Ensure the URL ends with /v1 for OpenAI-compatible API
