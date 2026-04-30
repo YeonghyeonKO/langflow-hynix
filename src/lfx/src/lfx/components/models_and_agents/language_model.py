@@ -61,6 +61,13 @@ class LanguageModelComponent(LCModelComponent):
             show=False,
             real_time_refresh=True,
         ),
+        StrInput(
+            name="vllm_base_url",
+            display_name="vLLM API URL",
+            info="Endpoint of the vLLM API server (vLLM only). Falls back to VLLM_API_BASE environment variable.",
+            show=False,
+            real_time_refresh=True,
+        ),
         MessageInput(
             name="input_value",
             display_name="Input",
@@ -107,6 +114,7 @@ class LanguageModelComponent(LCModelComponent):
             watsonx_url=getattr(self, "base_url_ibm_watsonx", None),
             watsonx_project_id=getattr(self, "project_id", None),
             ollama_base_url=getattr(self, "ollama_base_url", None),
+            vllm_base_url=getattr(self, "vllm_base_url", None),
         )
 
     def update_build_config(self, build_config: dict, field_value: str, field_name: str | None = None):
