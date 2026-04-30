@@ -216,15 +216,18 @@ def get_llm(
             )
             raise ValueError(msg)
 
-        # Override api_key: the component's api_key field may contain a stale key
-        # from a previous provider (e.g. OpenAI sk-...). Use the vLLM-specific key
-        # from provider variables, falling back to "dummy" for keyless servers.
-        vllm_api_key = provider_vars.get("VLLM_API_KEY") or os.environ.get("VLLM_API_KEY") or "dummy"
-        kwargs[api_key_param] = vllm_api_key
+        # Resolve api_key for vLLM: use the provider-specific VLLM_API_KEY
+        # to avoid stale keys from a previously selected provider.
+        # If VLLM_API_KEY is not set, fall back to "dummy" for keyless servers.
+        # Users with LiteLLM proxy should set their virtual key as VLLM_API_KEY
+        # in Settings → Model Providers → vLLM.
+        vllm_api_key = provider_vars.get("VLLM_API_KEY") or os.environ.get("VLLM_API_KEY")
+        kwargs[api_key_param] = vllm_api_key or "dummy"
         logger.info(
-            "vLLM model instantiation: model=%s, base_url=%s, api_key_source=%s",
+            "vLLM model instantiation: model=%s, base_url=%s, api_key_source=%s, provider_vars_keys=%s",
             model_name, vllm_base_url_value,
-            "VLLM_API_KEY" if vllm_api_key != "dummy" else "dummy",
+            "VLLM_API_KEY" if vllm_api_key else "dummy",
+            list(provider_vars.keys()),
         )
 
     try:
