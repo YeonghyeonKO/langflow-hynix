@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import logging
 import os
 from typing import TYPE_CHECKING, Any
 
 from lfx.base.models.model_utils import _to_str
-
-logger = logging.getLogger(__name__)
+from lfx.log.logger import logger
 
 from .provider_queries import model_provider_metadata
 
@@ -61,6 +59,7 @@ def get_llm(
     model_name = model.get("name")
     provider = model.get("provider")
     metadata = model.get("metadata", {})
+    logger.info("get_llm called: provider=%s, model_name=%s, model_class=%s", provider, model_name, metadata.get("model_class"))
 
     # Get model class and parameter names from metadata
     api_key_param = metadata.get("api_key_param", "api_key")
