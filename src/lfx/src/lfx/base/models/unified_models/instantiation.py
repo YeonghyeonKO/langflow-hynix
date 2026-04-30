@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from typing import TYPE_CHECKING, Any
 
 from lfx.base.models.model_utils import _to_str
+
+logger = logging.getLogger(__name__)
 
 from .provider_queries import model_provider_metadata
 
@@ -206,6 +209,10 @@ def get_llm(
             if not vllm_base_url_value.endswith("/v1"):
                 vllm_base_url_value = f"{vllm_base_url_value}/v1"
             kwargs[base_url_param] = vllm_base_url_value
+            logger.info(
+                "vLLM model instantiation: model=%s, base_url=%s, model_class=%s",
+                model_name, vllm_base_url_value, model_class_name,
+            )
         else:
             msg = (
                 "vLLM requires a base URL. Please provide it in the component, "
