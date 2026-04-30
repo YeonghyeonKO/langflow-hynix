@@ -233,6 +233,7 @@ class AgentComponent(ToolCallingAgentComponent):
             max_tokens=self._get_max_tokens_value(),
             watsonx_url=getattr(self, "base_url_ibm_watsonx", None),
             watsonx_project_id=getattr(self, "project_id", None),
+            vllm_base_url=getattr(self, "vllm_base_url", None),
         )
 
     async def get_agent_requirements(self):

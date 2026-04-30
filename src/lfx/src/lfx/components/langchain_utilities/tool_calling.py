@@ -83,6 +83,7 @@ class ToolCallingAgentComponent(LCToolsAgentComponent):
             api_key=getattr(self, "api_key", None),
             watsonx_url=getattr(self, "base_url_ibm_watsonx", None),
             watsonx_project_id=getattr(self, "project_id", None),
+            vllm_base_url=getattr(self, "vllm_base_url", None),
         )
 
     def update_build_config(self, build_config: dict, field_value: str, field_name: str | None = None) -> dict:
