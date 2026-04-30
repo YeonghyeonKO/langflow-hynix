@@ -24,6 +24,7 @@ def get_llm(
     watsonx_url=None,
     watsonx_project_id=None,
     ollama_base_url=None,
+    vllm_base_url=None,
 ) -> Any:
     # Resolve helpers via package namespace so tests patching
     # lfx.base.models.unified_models.<name> keep working.
@@ -31,6 +32,7 @@ def get_llm(
 
     # Coerce provider-specific string params (Message/Data may leak through StrInput)
     ollama_base_url = _to_str(ollama_base_url)
+    vllm_base_url = _to_str(vllm_base_url)
     watsonx_url = _to_str(watsonx_url)
     watsonx_project_id = _to_str(watsonx_project_id)
 
@@ -186,6 +188,26 @@ def get_llm(
         )
         if ollama_base_url_value:
             kwargs[base_url_param] = ollama_base_url_value
+
+    elif provider == "vLLM":
+        # For vLLM, handle custom base_url with component > database > env var fallback
+        base_url_param = metadata.get("base_url_param", "base_url")
+
+        # Get all provider variables from database
+        provider_vars = unified_models_module.get_all_variables_for_provider(user_id, provider)
+
+        # Priority: component value > database value > env var
+        vllm_base_url_value = (
+            vllm_base_url
+            if vllm_base_url
+            else provider_vars.get("VLLM_API_BASE") or os.environ.get("VLLM_API_BASE")
+        )
+        if vllm_base_url_value:
+            # Ensure the URL ends with /v1 for OpenAI-compatible API
+            vllm_base_url_value = vllm_base_url_value.rstrip("/")
+            if not vllm_base_url_value.endswith("/v1"):
+                vllm_base_url_value = f"{vllm_base_url_value}/v1"
+            kwargs[base_url_param] = vllm_base_url_value
 
     try:
         return model_class(**kwargs)
