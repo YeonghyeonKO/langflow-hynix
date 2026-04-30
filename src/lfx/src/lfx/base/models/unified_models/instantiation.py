@@ -209,16 +209,23 @@ def get_llm(
             if not vllm_base_url_value.endswith("/v1"):
                 vllm_base_url_value = f"{vllm_base_url_value}/v1"
             kwargs[base_url_param] = vllm_base_url_value
-            logger.info(
-                "vLLM model instantiation: model=%s, base_url=%s, model_class=%s",
-                model_name, vllm_base_url_value, model_class_name,
-            )
         else:
             msg = (
                 "vLLM requires a base URL. Please provide it in the component, "
                 "configure it globally as VLLM_API_BASE, or set the VLLM_API_BASE environment variable."
             )
             raise ValueError(msg)
+
+        # Override api_key: the component's api_key field may contain a stale key
+        # from a previous provider (e.g. OpenAI sk-...). Use the vLLM-specific key
+        # from provider variables, falling back to "dummy" for keyless servers.
+        vllm_api_key = provider_vars.get("VLLM_API_KEY") or os.environ.get("VLLM_API_KEY") or "dummy"
+        kwargs[api_key_param] = vllm_api_key
+        logger.info(
+            "vLLM model instantiation: model=%s, base_url=%s, api_key_source=%s",
+            model_name, vllm_base_url_value,
+            "VLLM_API_KEY" if vllm_api_key != "dummy" else "dummy",
+        )
 
     try:
         return model_class(**kwargs)
