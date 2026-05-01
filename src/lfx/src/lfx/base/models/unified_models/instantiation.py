@@ -215,17 +215,22 @@ def get_llm(
             )
             raise ValueError(msg)
 
-        # Resolve api_key for vLLM: use the provider-specific VLLM_API_KEY
-        # to avoid stale keys from a previously selected provider.
-        # If VLLM_API_KEY is not set, fall back to "dummy" for keyless servers.
-        # Users with LiteLLM proxy should set their virtual key as VLLM_API_KEY
-        # in Settings → Model Providers → vLLM.
+        # Resolve api_key for vLLM: check multiple sources to avoid stale
+        # keys from a previously selected provider.
+        # Priority: Model Provider vars > Global Variables > env var > "dummy"
         vllm_api_key = provider_vars.get("VLLM_API_KEY") or os.environ.get("VLLM_API_KEY")
+        api_key_source = "provider_vars" if provider_vars.get("VLLM_API_KEY") else "env" if os.environ.get("VLLM_API_KEY") else None
+        if not vllm_api_key:
+            # Also check Global Variables (user may have set VLLM_API_KEY there
+            # instead of in Model Providers settings)
+            vllm_api_key = unified_models_module.get_api_key_for_provider(user_id, provider, "VLLM_API_KEY")
+            if vllm_api_key:
+                api_key_source = "global_vars"
         kwargs[api_key_param] = vllm_api_key or "dummy"
         logger.info(
             "vLLM model instantiation: model=%s, base_url=%s, api_key_source=%s, provider_vars_keys=%s",
             model_name, vllm_base_url_value,
-            "VLLM_API_KEY" if vllm_api_key else "dummy",
+            api_key_source or "dummy",
             list(provider_vars.keys()),
         )
 
