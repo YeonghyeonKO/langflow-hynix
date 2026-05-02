@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ForwardedIconComponent } from "@/components/common/genericIconComponent";
 import { Button } from "@/components/ui/button";
+import { copyToClipboard } from "@/utils/clipboardUtils";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import useAlertStore from "@/stores/alertStore";
 import useFlowStore from "@/stores/flowStore";
@@ -44,7 +45,7 @@ export default function OutputModal({
     const content = getOutputContent();
     if (!content) return;
 
-    navigator.clipboard.writeText(content).then(() => {
+    copyToClipboard(content).then(() => {
       setIsCopied(true);
       setSuccessData({ title: "Copied to clipboard" });
       setTimeout(() => {
