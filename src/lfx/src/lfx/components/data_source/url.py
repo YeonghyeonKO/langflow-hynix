@@ -277,11 +277,18 @@ class URLComponent(Component):
         }
         extractor = extractors.get(self.format, self._text_extractor)
 
+        verify_ssl = getattr(self, "verify_ssl", True)
+
+        # When SSL verification is disabled and async mode is used,
+        # force sync mode because aiohttp's ssl=False requires patching
+        # the connector which RecursiveUrlLoader doesn't support.
+        use_async = self.use_async if verify_ssl else False
+
         return RecursiveUrlLoader(
             url=url,
             max_depth=self.max_depth,
             prevent_outside=self.prevent_outside,
-            use_async=self.use_async,
+            use_async=use_async,
             extractor=extractor,
             timeout=self.timeout,
             headers=headers_dict,
