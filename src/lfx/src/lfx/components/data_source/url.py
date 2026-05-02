@@ -185,8 +185,11 @@ class URLComponent(Component):
         BoolInput(
             name="verify_ssl",
             display_name="Verify SSL",
-            info="If disabled, skips SSL certificate verification. Useful for air-gapped or internal environments.",
-            value=True,
+            info=(
+                "If disabled, skips SSL certificate verification. Useful for air-gapped or internal environments. "
+                "Can also be set globally via LANGFLOW_URL_VERIFY_SSL=false environment variable."
+            ),
+            value=os.environ.get("LANGFLOW_URL_VERIFY_SSL", "true").lower() != "false",
             required=False,
             advanced=True,
         ),
