@@ -223,7 +223,9 @@ def get_llm(
         if not vllm_api_key:
             # Also check Global Variables (user may have set VLLM_API_KEY there
             # instead of in Model Providers settings)
+            logger.info("vLLM: VLLM_API_KEY not in provider_vars/env, trying Global Variables (user_id=%s)", user_id)
             vllm_api_key = unified_models_module.get_api_key_for_provider(user_id, provider, "VLLM_API_KEY")
+            logger.info("vLLM: Global Variables lookup result: %s", "found" if vllm_api_key else "not found")
             if vllm_api_key:
                 api_key_source = "global_vars"
         kwargs[api_key_param] = vllm_api_key or "dummy"
