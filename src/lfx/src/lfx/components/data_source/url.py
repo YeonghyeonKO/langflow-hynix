@@ -1,5 +1,6 @@
 import importlib
 import io
+import os
 import re
 
 import requests
@@ -181,6 +182,14 @@ class URLComponent(Component):
             required=False,
             advanced=True,
         ),
+        BoolInput(
+            name="verify_ssl",
+            display_name="Verify SSL",
+            info="If disabled, skips SSL certificate verification. Useful for air-gapped or internal environments.",
+            value=True,
+            required=False,
+            advanced=True,
+        ),
     ]
 
     outputs = [
@@ -290,6 +299,17 @@ class URLComponent(Component):
         Raises:
             ValueError: If no valid URLs are provided or if there's an error loading documents
         """
+        # Disable SSL verification if configured
+        verify_ssl = getattr(self, "verify_ssl", True)
+        original_env = os.environ.get("CURL_CA_BUNDLE")
+        if not verify_ssl:
+            # RecursiveUrlLoader uses requests/aiohttp internally;
+            # disable SSL verification globally for this call
+            import urllib3
+
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            os.environ["CURL_CA_BUNDLE"] = ""
+
         try:
             urls = list({self.ensure_url(url) for url in self.urls if url.strip()})
             logger.debug(f"URLs: {urls}")
@@ -303,7 +323,20 @@ class URLComponent(Component):
 
                 try:
                     loader = self._create_loader(url)
-                    docs = loader.load()
+                    if not verify_ssl:
+                        # Monkey-patch requests.Session.verify for this loader
+                        _original_request = requests.Session.request
+
+                        def _no_verify_request(self_session, *args, **kwargs):
+                            kwargs.setdefault("verify", False)
+                            return _original_request(self_session, *args, **kwargs)
+
+                        requests.Session.request = _no_verify_request
+                    try:
+                        docs = loader.load()
+                    finally:
+                        if not verify_ssl:
+                            requests.Session.request = _original_request
 
                     if not docs:
                         logger.warning(f"No documents found for {url}")
@@ -337,6 +370,13 @@ class URLComponent(Component):
             msg = f"Error loading documents: {error_msg!s}"
             logger.exception(msg)
             raise ValueError(msg) from e
+        finally:
+            # Restore SSL environment
+            if not verify_ssl:
+                if original_env is None:
+                    os.environ.pop("CURL_CA_BUNDLE", None)
+                else:
+                    os.environ["CURL_CA_BUNDLE"] = original_env
         return data
 
     def fetch_content(self) -> DataFrame:
