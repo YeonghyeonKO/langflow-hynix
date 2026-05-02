@@ -147,7 +147,13 @@ def get_all_variables_for_provider(user_id: UUID | str | None, provider: str) ->
                     )
                     if value and str(value).strip():
                         values[var_key] = str(value)
-                except (ValueError, Exception):  # noqa: BLE001
+                    else:
+                        logger.debug("get_all_variables_for_provider: %s returned empty/None", var_key)
+                except (ValueError, Exception) as e:  # noqa: BLE001
+                    logger.warning(
+                        "get_all_variables_for_provider: %s lookup failed: %s(%s)",
+                        var_key, type(e).__name__, e,
+                    )
                     # Variable not found - check environment
                     env_value = os.environ.get(var_key)
                     if env_value and env_value.strip():
