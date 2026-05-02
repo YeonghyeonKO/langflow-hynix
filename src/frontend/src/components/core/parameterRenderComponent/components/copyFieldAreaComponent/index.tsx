@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { GRADIENT_CLASS_DISABLED } from "@/constants/constants";
 import { customGetHostProtocol } from "@/customization/utils/custom-get-host-protocol";
+import { copyToClipboard } from "@/utils/clipboardUtils";
 import useAlertStore from "@/stores/alertStore";
 import useFlowStore from "@/stores/flowStore";
 import { cn } from "../../../../../utils/utils";
@@ -93,7 +94,7 @@ export default function CopyFieldAreaComponent({
   const handleCopy = (event?: React.MouseEvent<HTMLDivElement>) => {
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
-    navigator.clipboard.writeText(valueToRender);
+    copyToClipboard(valueToRender);
 
     setSuccessData({
       title: "Endpoint URL copied",

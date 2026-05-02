@@ -3,6 +3,7 @@ import LangflowLogo from "@/assets/LangflowLogo.svg?react";
 import IconComponent, {
   ForwardedIconComponent,
 } from "@/components/common/genericIconComponent";
+import { copyToClipboard } from "@/utils/clipboardUtils";
 import MessageMetadata from "@/components/common/messageMetadataComponent";
 import { ContentBlockDisplay } from "@/components/core/chatComponents/ContentBlockDisplay";
 import { useUpdateMessage } from "@/controllers/API/queries/messages";
@@ -247,7 +248,7 @@ export const BotMessage = memo(
             {!editMessage && (
               <div className="invisible absolute bottom-full right-0 group-hover:visible">
                 <EditMessageButton
-                  onCopy={() => navigator.clipboard.writeText(chatMessage)}
+                  onCopy={() => copyToClipboard(chatMessage)}
                   onEdit={() => setEditMessage(true)}
                   className="h-fit group-hover:visible"
                   isBotMessage={true}

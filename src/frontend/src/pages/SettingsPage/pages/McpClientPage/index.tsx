@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import ForwardedIconComponent from "@/components/common/genericIconComponent";
+import { copyToClipboard as copyText } from "@/utils/clipboardUtils";
 import { Button } from "@/components/ui/button";
 import { customGetHostProtocol } from "@/customization/utils/custom-get-host-protocol";
 import { cn } from "@/utils/utils";
@@ -77,8 +78,7 @@ export default function McpClientPage() {
   );
 
   const copyToClipboard = useCallback((text: string, key: string) => {
-    if (!navigator.clipboard) return;
-    navigator.clipboard.writeText(text).then(() => {
+    copyText(text).then(() => {
       setCopiedKey(key);
       setTimeout(() => setCopiedKey(null), 1000);
     });

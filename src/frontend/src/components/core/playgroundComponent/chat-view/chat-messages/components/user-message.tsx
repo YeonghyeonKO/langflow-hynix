@@ -1,6 +1,7 @@
 import { memo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ForwardedIconComponent } from "@/components/common/genericIconComponent";
+import { copyToClipboard } from "@/utils/clipboardUtils";
 import { useUpdateMessage } from "@/controllers/API/queries/messages";
 import { CustomProfileIcon } from "@/customization/components/custom-profile-icon";
 import useAlertStore from "@/stores/alertStore";
@@ -189,7 +190,7 @@ export const UserMessage = memo(
             {!editMessage && (
               <div className="invisible absolute -top-4 right-0 group-hover:visible">
                 <EditMessageButton
-                  onCopy={() => navigator.clipboard.writeText(chatMessage)}
+                  onCopy={() => copyToClipboard(chatMessage)}
                   onEdit={() => setEditMessage(true)}
                   className="h-fit group-hover:visible"
                   isBotMessage={false}

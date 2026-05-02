@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ENABLE_DATASTAX_LANGFLOW } from "@/customization/feature-flags";
+import { copyToClipboard } from "@/utils/clipboardUtils";
 import { useGenerateToken } from "@/customization/hooks/use-custom-generate-token";
 import { createApiKey } from "../../controllers/API";
 import useAlertStore from "../../stores/alertStore";
@@ -60,7 +61,7 @@ export default function SecretKeyModal({
 
   const handleCopyClick = async () => {
     if (apiKeyValue) {
-      await navigator.clipboard.writeText(apiKeyValue);
+      await copyToClipboard(apiKeyValue);
       inputRef?.current?.focus();
       inputRef?.current?.select();
       setSuccessData({

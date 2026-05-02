@@ -5,6 +5,7 @@ import {
   oneLight,
 } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { CustomAPIGenerator } from "@/customization/components/custom-api-generator";
+import { copyToClipboard } from "@/utils/clipboardUtils";
 import { useDarkStore } from "@/stores/darkStore";
 import IconComponent from "../../components/common/genericIconComponent";
 import { Button } from "../../components/ui/button";
@@ -41,12 +42,8 @@ export default function EmbedModal({
   };
   const embedCode = getWidgetCode({ ...widgetProps, copy: false });
   const copyCode = getWidgetCode({ ...widgetProps, copy: true });
-  const copyToClipboard = () => {
-    if (!navigator.clipboard || !navigator.clipboard.writeText) {
-      return;
-    }
-
-    navigator.clipboard.writeText(copyCode).then(() => {
+  const handleCopy = () => {
+    copyToClipboard(copyCode).then(() => {
       setIsCopied(true);
 
       setTimeout(() => {
@@ -70,7 +67,7 @@ export default function EmbedModal({
             <Button
               variant="ghost"
               size="icon"
-              onClick={copyToClipboard}
+              onClick={handleCopy}
               data-testid="btn-copy-code"
               className="!hover:bg-foreground group absolute right-2 top-2"
             >

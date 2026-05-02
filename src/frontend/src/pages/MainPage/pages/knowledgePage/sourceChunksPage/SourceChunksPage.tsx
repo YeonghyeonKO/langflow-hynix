@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import ForwardedIconComponent from "@/components/common/genericIconComponent";
+import { copyToClipboard } from "@/utils/clipboardUtils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Loading from "@/components/ui/loading";
@@ -58,7 +59,7 @@ export const SourceChunksPage = () => {
   };
 
   const handleCopyChunk = (content: string) => {
-    navigator.clipboard.writeText(content);
+    copyToClipboard(content);
   };
 
   const handlePageSizeChange = (newSize: number) => {
