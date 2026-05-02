@@ -234,9 +234,18 @@ def get_llm(
             list(provider_vars.keys()),
         )
 
+    if provider == "vLLM":
+        # Log full kwargs for debugging (mask api_key)
+        debug_kwargs = dict(kwargs)
+        ak = str(debug_kwargs.get(api_key_param, ""))
+        debug_kwargs[api_key_param] = f"{ak[:4]}***{ak[-4:]}" if len(ak) > 8 else "***"
+        logger.info("vLLM ChatOpenAI kwargs: %s, class=%s", debug_kwargs, model_class_name)
+
     try:
         return model_class(**kwargs)
     except Exception as e:
+        if provider == "vLLM":
+            logger.error("vLLM model instantiation failed: %s", e)
         # If instantiation fails and it's WatsonX, provide additional context
         if provider in {"IBM WatsonX", "IBM watsonx.ai"} and ("url" in str(e).lower() or "project" in str(e).lower()):
             msg = (
