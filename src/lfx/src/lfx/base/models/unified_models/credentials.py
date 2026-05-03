@@ -414,8 +414,6 @@ def validate_model_provider_key(provider: str, variables: dict[str, str], model_
                 logger.error(msg)
                 raise ValueError(msg)
 
-            # Validate URL format only — server may not be reachable at config time
-            # (e.g. running inside Docker where host network differs)
             base_url = base_url.rstrip("/")
             models_url = f"{base_url}/models" if base_url.endswith("/v1") else f"{base_url}/v1/models"
             headers = {}
@@ -423,10 +421,20 @@ def validate_model_provider_key(provider: str, variables: dict[str, str], model_
             if api_key:
                 headers["Authorization"] = f"Bearer {api_key}"
 
+            logger.info(
+                "vLLM validation: url=%s, has_api_key=%s, api_key_prefix=%s",
+                models_url, bool(api_key),
+                api_key[:8] + "..." if api_key and len(api_key) > 8 else "***" if api_key else "none",
+            )
+
             try:
-                response = requests.get(models_url, headers=headers, timeout=5)
+                response = requests.get(models_url, headers=headers, timeout=5, verify=False)
+                logger.info("vLLM validation response: status=%s", response.status_code)
                 if response.status_code in (401, 403):
-                    msg = "Authentication failed for vLLM server. Check VLLM_API_KEY."
+                    msg = (
+                        f"Authentication failed for vLLM server (status={response.status_code}). "
+                        f"URL: {models_url}, has_api_key: {bool(api_key)}. Check VLLM_API_KEY."
+                    )
                     logger.error(msg)
                     raise ValueError(msg)
                 response.raise_for_status()
