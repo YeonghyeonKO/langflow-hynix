@@ -309,8 +309,10 @@ class URLComponent(Component):
         Raises:
             ValueError: If no valid URLs are provided or if there's an error loading documents
         """
-        # Disable SSL verification if configured
+        # Disable SSL verification if configured (component attribute or env var)
         verify_ssl = getattr(self, "verify_ssl", True)
+        if os.environ.get("LANGFLOW_URL_VERIFY_SSL", "true").lower() == "false":
+            verify_ssl = False
         original_env = os.environ.get("CURL_CA_BUNDLE")
         if not verify_ssl:
             # RecursiveUrlLoader uses requests/aiohttp internally;
