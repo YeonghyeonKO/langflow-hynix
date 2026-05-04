@@ -421,10 +421,18 @@ def validate_model_provider_key(provider: str, variables: dict[str, str], model_
             if api_key:
                 headers["Authorization"] = f"Bearer {api_key}"
 
+            # Skip full API validation if API key is not available.
+            # This avoids a race condition when the frontend saves
+            # VLLM_API_BASE and VLLM_API_KEY in parallel — the base URL
+            # save may read the OLD key from DB before the key save commits.
+            if not api_key:
+                logger.info("vLLM validation: skipping API call (no API key available), url=%s", models_url)
+                return
+
             logger.info(
-                "vLLM validation: url=%s, has_api_key=%s, api_key_prefix=%s",
-                models_url, bool(api_key),
-                api_key[:8] + "..." if api_key and len(api_key) > 8 else "***" if api_key else "none",
+                "vLLM validation: url=%s, api_key_prefix=%s",
+                models_url,
+                api_key[:8] + "..." if len(api_key) > 8 else "***",
             )
 
             try:
@@ -433,7 +441,7 @@ def validate_model_provider_key(provider: str, variables: dict[str, str], model_
                 if response.status_code in (401, 403):
                     msg = (
                         f"Authentication failed for vLLM server (status={response.status_code}). "
-                        f"URL: {models_url}, has_api_key: {bool(api_key)}. Check VLLM_API_KEY."
+                        f"URL: {models_url}. Check VLLM_API_KEY."
                     )
                     logger.error(msg)
                     raise ValueError(msg)
