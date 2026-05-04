@@ -124,10 +124,15 @@ async def create_variable(
     if variable.name in model_provider_variable_mapping.values():
         provider = get_provider_from_variable_name(variable.name)
         if provider is not None:
-            # Validate that the key actually works using the Language Model Service
+            # Merge with existing provider variables from DB so validation
+            # has full context (e.g. VLLM_API_BASE + VLLM_API_KEY together)
+            from lfx.base.models.unified_models import get_all_variables_for_provider
+
+            all_provider_vars = get_all_variables_for_provider(current_user.id, provider)
+            all_provider_vars[variable.name] = variable.value
             # Run validation off the event loop to avoid blocking
             try:
-                await asyncio.to_thread(validate_model_provider_key, provider, {variable.name: variable.value})
+                await asyncio.to_thread(validate_model_provider_key, provider, all_provider_vars)
             except ValueError as e:
                 raise HTTPException(status_code=400, detail=str(e)) from e
 
@@ -212,12 +217,18 @@ async def update_variable(
         if existing_variable.name in model_provider_variable_mapping.values() and variable.value:
             provider = get_provider_from_variable_name(existing_variable.name)
             if provider is not None:
+                # Merge with existing provider variables from DB so validation
+                # has full context (e.g. VLLM_API_BASE + VLLM_API_KEY together)
+                from lfx.base.models.unified_models import get_all_variables_for_provider
+
+                all_provider_vars = get_all_variables_for_provider(current_user.id, provider)
+                all_provider_vars[existing_variable.name] = variable.value
                 # Run validation off the event loop to avoid blocking
                 try:
                     await asyncio.to_thread(
                         validate_model_provider_key,
                         provider,
-                        {existing_variable.name: variable.value},
+                        all_provider_vars,
                     )
                 except ValueError as e:
                     raise HTTPException(status_code=400, detail=str(e)) from e
