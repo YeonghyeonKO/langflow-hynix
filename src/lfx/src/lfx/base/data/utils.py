@@ -274,14 +274,26 @@ async def read_docx_file_async(file_path: str) -> str:
             Path(temp_path).unlink()
 
 
-def extract_text_from_bytes(file_name: str, file_content: bytes) -> str:
+def extract_text_from_bytes(file_name: str, file_content: bytes, *, employee_id: str | None = None) -> str:
     """Extract text from binary file content based on file extension.
 
     Supports PDF (via pypdf), DOCX (via python-docx), and plain text files.
+    If DRM is enabled and detected, decrypts the file before extraction.
+
+    Args:
+        file_name: The filename (used for extension detection).
+        file_content: Raw file bytes.
+        employee_id: Employee ID from Keycloak SSO for DRM permission check.
 
     Raises:
         ValueError: If the file content is corrupted or cannot be parsed.
+        PermissionError: If DRM is detected but user lacks permission.
     """
+    from lfx.base.data.drm import process_drm_file
+
+    # DRM processing: detect → check permission → decrypt (if applicable)
+    file_content = process_drm_file(file_name, file_content, employee_id=employee_id)
+
     lower_name = file_name.lower()
     if lower_name.endswith(".pdf"):
         try:
