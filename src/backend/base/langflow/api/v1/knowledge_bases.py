@@ -168,7 +168,7 @@ async def create_knowledge_base(
 
 @router.post("/preview-chunks", status_code=HTTPStatus.OK)
 async def preview_chunks(
-    _current_user: CurrentActiveUser,
+    current_user: CurrentActiveUser,
     files: Annotated[list[UploadFile], File(description="Files to preview chunking for")],
     chunk_size: Annotated[int, Form()] = 1000,
     chunk_overlap: Annotated[int, Form()] = 200,
@@ -202,7 +202,8 @@ async def preview_chunks(
             try:
                 file_content = await uploaded_file.read()
                 file_name = uploaded_file.filename or "unknown"
-                text_content = extract_text_from_bytes(file_name, file_content)
+                employee_id = current_user.username if current_user else None
+                text_content = extract_text_from_bytes(file_name, file_content, employee_id=employee_id)
 
                 if not text_content.strip():
                     file_previews.append(

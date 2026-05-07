@@ -455,9 +455,10 @@ class KBIngestionHelper:
             )
 
             job_id_str = str(task_job_id)
+            employee_id = current_user.username if current_user else None
             for file_name, file_content in files_data:
                 await logger.ainfo("Starting ingestion of %s for %s", file_name, kb_name)
-                content = extract_text_from_bytes(file_name, file_content)
+                content = extract_text_from_bytes(file_name, file_content, employee_id=employee_id)
                 if not content.strip():
                     continue
 
