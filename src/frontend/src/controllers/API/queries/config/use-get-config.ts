@@ -22,6 +22,7 @@ interface BaseConfig {
   allow_custom_components: boolean;
   mcp_base_url: string;
   agent_hub_url?: string;
+  agent_builder_channel_url?: string;
 }
 
 // Public config = base config (unauthenticated users get only base fields)
@@ -86,6 +87,7 @@ export const useGetConfig: useQueryFunctionType<
   );
   const setMcpBaseUrl = useUtilityStore((state) => state.setMcpBaseUrl);
   const setAgentHubUrl = useUtilityStore((state) => state.setAgentHubUrl);
+  const setAgentBuilderChannelUrl = useUtilityStore((state) => state.setAgentBuilderChannelUrl);
 
   const { query } = UseRequestProcessor();
 
@@ -110,6 +112,7 @@ export const useGetConfig: useQueryFunctionType<
       setAllowCustomComponents(allowCustomComponents);
       setMcpBaseUrl(data.mcp_base_url ?? "");
       setAgentHubUrl(data.agent_hub_url ?? "");
+      setAgentBuilderChannelUrl(data.agent_builder_channel_url ?? "");
       recomputeComponentsToUpdateIfNeeded();
 
       // Set authenticated-only fields if present (full config)
