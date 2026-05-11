@@ -155,10 +155,11 @@ def check_drm_permission(employee_id: str) -> bool:
         return False
 
 
-def decrypt_drm_file(file_name: str, file_content: bytes) -> bytes:
+def decrypt_drm_file(file_name: str, file_content: bytes, employee_id: str | None = None) -> bytes:
     """Decrypt a DRM-protected file via the DRM decrypt API.
 
     Sends the file as multipart/form-data to the decrypt endpoint.
+    Employee number is included as a query parameter (empNo) for audit/logging.
 
     Returns:
         Decrypted file bytes.
@@ -177,11 +178,17 @@ def decrypt_drm_file(file_name: str, file_content: bytes) -> bytes:
     if gw_root_key:
         headers["gw-root-key"] = gw_root_key
 
+    # Add employee number as query parameter for audit
+    params = {}
+    if employee_id:
+        params["empNo"] = employee_id
+
     try:
         response = requests.post(
             decrypt_url,
             files={"file": (file_name, BytesIO(file_content))},
             headers=headers,
+            params=params,
             timeout=60,
             verify=False,  # noqa: S501 — air-gapped environment
         )
@@ -242,4 +249,4 @@ def process_drm_file(file_name: str, file_content: bytes, employee_id: str | Non
         logger.warning("No employee_id provided for DRM check on '%s', skipping permission check", file_name)
 
     # Decrypt
-    return decrypt_drm_file(file_name, file_content)
+    return decrypt_drm_file(file_name, file_content, employee_id=employee_id)
