@@ -380,6 +380,7 @@ class BaseConfigResponse(BaseModel):
     voice_mode_available: bool
     frontend_timeout: int
     mcp_base_url: str
+    agent_hub_url: str = ""
 
 
 class PublicConfigResponse(BaseConfigResponse):
@@ -402,6 +403,8 @@ class PublicConfigResponse(BaseConfigResponse):
         Returns:
             PublicConfigResponse: An instance populated with public-safe configuration values.
         """
+        import os
+
         return cls(
             feature_flags=FEATURE_FLAGS,
             max_file_size_upload=settings.max_file_size_upload,
@@ -410,6 +413,7 @@ class PublicConfigResponse(BaseConfigResponse):
             frontend_timeout=settings.frontend_timeout,
             mcp_base_url=settings.mcp_base_url,
             allow_custom_components=settings.allow_custom_components,
+            agent_hub_url=os.getenv("LANGFLOW_AGENT_HUB_URL", ""),
         )
 
 
@@ -467,6 +471,7 @@ class ConfigResponse(BaseConfigResponse):
             default_folder_name=DEFAULT_FOLDER_NAME,
             hide_getting_started_progress=os.getenv("HIDE_GETTING_STARTED_PROGRESS", "").lower() == "true",
             allow_custom_components=settings.allow_custom_components,
+            agent_hub_url=os.getenv("LANGFLOW_AGENT_HUB_URL", ""),
         )
 
 
