@@ -386,7 +386,7 @@ def extract_text_from_bytes(file_name: str, file_content: bytes, *, employee_id:
         try:
             from openpyxl import load_workbook
 
-            MAX_ROWS = 100_000  # OOM prevention
+            MAX_ROWS = 10_000  # OOM prevention (~5MB text output max)
             wb = load_workbook(BytesIO(file_content), read_only=True, data_only=True)
             texts = []
             row_count = 0
