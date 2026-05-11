@@ -381,6 +381,7 @@ class BaseConfigResponse(BaseModel):
     frontend_timeout: int
     mcp_base_url: str
     agent_hub_url: str = ""
+    agent_builder_channel_url: str = ""
 
 
 class PublicConfigResponse(BaseConfigResponse):
@@ -414,6 +415,7 @@ class PublicConfigResponse(BaseConfigResponse):
             mcp_base_url=settings.mcp_base_url,
             allow_custom_components=settings.allow_custom_components,
             agent_hub_url=os.getenv("LANGFLOW_AGENT_HUB_URL", ""),
+            agent_builder_channel_url=os.getenv("LANGFLOW_AGENT_BUILDER_CHANNEL", ""),
         )
 
 
@@ -472,6 +474,7 @@ class ConfigResponse(BaseConfigResponse):
             hide_getting_started_progress=os.getenv("HIDE_GETTING_STARTED_PROGRESS", "").lower() == "true",
             allow_custom_components=settings.allow_custom_components,
             agent_hub_url=os.getenv("LANGFLOW_AGENT_HUB_URL", ""),
+            agent_builder_channel_url=os.getenv("LANGFLOW_AGENT_BUILDER_CHANNEL", ""),
         )
 
 

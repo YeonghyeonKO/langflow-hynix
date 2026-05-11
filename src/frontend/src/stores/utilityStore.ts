@@ -68,4 +68,6 @@ export const useUtilityStore = create<UtilityStoreType>((set, get) => ({
   setMcpBaseUrl: (mcpBaseUrl: string) => set({ mcpBaseUrl }),
   agentHubUrl: "",
   setAgentHubUrl: (agentHubUrl: string) => set({ agentHubUrl }),
+  agentBuilderChannelUrl: "",
+  setAgentBuilderChannelUrl: (agentBuilderChannelUrl: string) => set({ agentBuilderChannelUrl }),
 }));
