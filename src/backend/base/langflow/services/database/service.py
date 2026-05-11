@@ -465,10 +465,21 @@ class DatabaseService(Service):
     async def run_migrations(self, *, fix=False) -> None:
         should_initialize_alembic = False
         async with session_scope() as session:
-            # If the table does not exist it throws an error
-            # so we need to catch it
+            # If the table does not exist or is empty (e.g. race condition
+            # on NAS PV where a previous attempt created the table but
+            # crashed before committing the version row), treat as
+            # uninitialized so init_alembic runs a clean upgrade from base.
             try:
-                await session.exec(text("SELECT * FROM alembic_version"))
+                result = await session.exec(text("SELECT * FROM alembic_version"))
+                rows = result.all()
+                if not rows:
+                    await logger.awarning(
+                        "alembic_version table exists but is empty — "
+                        "dropping and re-initializing (likely race condition on startup)"
+                    )
+                    await session.exec(text("DROP TABLE alembic_version"))
+                    await session.commit()
+                    should_initialize_alembic = True
             except Exception:  # noqa: BLE001
                 await logger.adebug("Alembic not initialized")
                 should_initialize_alembic = True
