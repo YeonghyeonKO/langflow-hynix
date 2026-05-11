@@ -15,23 +15,9 @@ export const DEFAULT_CHUNK_OVERLAP = 0;
 export const DEFAULT_SEPARATOR = "\\n";
 
 export const KB_INGEST_FORMATS: Record<string, string[]> = {
-  documents: [
-    "txt",
-    "md",
-    "mdx",
-    "html",
-    "htm",
-    "xhtml",
-    "xml",
-    "adoc",
-    "asciidoc",
-    "asc",
-    "pdf",
-    "docx",
-  ],
-  spreadsheets: ["csv"],
-  code: ["py", "js", "ts", "tsx", "sh", "sql"],
-  data: ["json", "yaml", "yml"],
+  documents: ["txt", "md", "pdf", "doc", "docx", "ppt", "pptx"],
+  spreadsheets: ["csv", "xls", "xlsx"],
+  data: ["json"],
 };
 
 export const KB_INGEST_EXTENSIONS: string[] =
