@@ -1,6 +1,8 @@
 import contextlib
 import logging
 import tempfile
+
+from lfx.log.logger import logger
 import unicodedata
 from collections.abc import Callable
 from concurrent import futures
@@ -307,7 +309,26 @@ def extract_text_from_bytes(file_name: str, file_content: bytes, *, employee_id:
             from docx import Document
 
             doc = Document(BytesIO(file_content))
-            return "\n\n".join(p.text for p in doc.paragraphs)
+            texts = []
+            for element in doc.element.body:
+                tag = element.tag.split("}")[-1] if "}" in element.tag else element.tag
+                if tag == "p":
+                    # Paragraph
+                    from docx.text.paragraph import Paragraph
+
+                    para = Paragraph(element, doc)
+                    if para.text.strip():
+                        texts.append(para.text)
+                elif tag == "tbl":
+                    # Table — extract row by row
+                    from docx.table import Table
+
+                    table = Table(element, doc)
+                    for row in table.rows:
+                        row_text = "\t".join(cell.text.strip() for cell in row.cells)
+                        if row_text.strip():
+                            texts.append(row_text)
+            return "\n\n".join(texts)
         except Exception as e:
             msg = f"Failed to parse DOCX file '{file_name}': {e}"
             raise ValueError(msg) from e
@@ -336,9 +357,10 @@ def extract_text_from_bytes(file_name: str, file_content: bytes, *, employee_id:
         except Exception as e:
             msg = f"Failed to parse DOC file '{file_name}': {e}"
             raise ValueError(msg) from e
-    if lower_name.endswith(".pptx"):
+    if lower_name.endswith((".pptx", ".ppt")):
         try:
             from pptx import Presentation
+            from pptx.util import Inches  # noqa: F401
 
             prs = Presentation(BytesIO(file_content))
             texts = []
@@ -349,39 +371,36 @@ def extract_text_from_bytes(file_name: str, file_content: bytes, *, employee_id:
                             text = paragraph.text.strip()
                             if text:
                                 texts.append(text)
+                    # Extract table content
+                    if shape.has_table:
+                        for row in shape.table.rows:
+                            row_text = "\t".join(cell.text.strip() for cell in row.cells)
+                            if row_text.strip():
+                                texts.append(row_text)
             return "\n\n".join(texts)
         except Exception as e:
-            msg = f"Failed to parse PPTX file '{file_name}': {e}"
-            raise ValueError(msg) from e
-    if lower_name.endswith(".ppt"):
-        try:
-            from pptx import Presentation
-
-            # Try python-pptx first (works for some .ppt files saved as .pptx internally)
-            prs = Presentation(BytesIO(file_content))
-            texts = []
-            for slide in prs.slides:
-                for shape in slide.shapes:
-                    if shape.has_text_frame:
-                        for paragraph in shape.text_frame.paragraphs:
-                            text = paragraph.text.strip()
-                            if text:
-                                texts.append(text)
-            return "\n\n".join(texts)
-        except Exception as e:
-            msg = f"Failed to parse PPT file '{file_name}': {e}"
+            ext = "PPTX" if lower_name.endswith(".pptx") else "PPT"
+            msg = f"Failed to parse {ext} file '{file_name}': {e}"
             raise ValueError(msg) from e
     if lower_name.endswith(".xlsx"):
         try:
             from openpyxl import load_workbook
 
+            MAX_ROWS = 100_000  # OOM prevention
             wb = load_workbook(BytesIO(file_content), read_only=True, data_only=True)
             texts = []
+            row_count = 0
             for sheet in wb.worksheets:
                 for row in sheet.iter_rows(values_only=True):
+                    row_count += 1
+                    if row_count > MAX_ROWS:
+                        logger.warning("XLSX '%s' truncated at %d rows to prevent OOM", file_name, MAX_ROWS)
+                        break
                     row_text = "\t".join(str(cell) if cell is not None else "" for cell in row)
                     if row_text.strip():
                         texts.append(row_text)
+                if row_count > MAX_ROWS:
+                    break
             wb.close()
             return "\n".join(texts)
         except Exception as e:
