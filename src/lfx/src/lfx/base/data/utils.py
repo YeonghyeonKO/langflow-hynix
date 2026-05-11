@@ -311,6 +311,99 @@ def extract_text_from_bytes(file_name: str, file_content: bytes, *, employee_id:
         except Exception as e:
             msg = f"Failed to parse DOCX file '{file_name}': {e}"
             raise ValueError(msg) from e
+    if lower_name.endswith(".doc"):
+        try:
+            import subprocess
+            import tempfile
+
+            with tempfile.NamedTemporaryFile(suffix=".doc", delete=False) as tmp:
+                tmp.write(file_content)
+                tmp_path = tmp.name
+            try:
+                # Use antiword or fallback to textract-like approach
+                result = subprocess.run(
+                    ["antiword", tmp_path], capture_output=True, text=True, timeout=30
+                )
+                if result.returncode == 0:
+                    return result.stdout
+                # Fallback: try python-docx on .doc (works for some formats)
+                from docx import Document
+
+                doc = Document(BytesIO(file_content))
+                return "\n\n".join(p.text for p in doc.paragraphs)
+            finally:
+                Path(tmp_path).unlink(missing_ok=True)
+        except Exception as e:
+            msg = f"Failed to parse DOC file '{file_name}': {e}"
+            raise ValueError(msg) from e
+    if lower_name.endswith(".pptx"):
+        try:
+            from pptx import Presentation
+
+            prs = Presentation(BytesIO(file_content))
+            texts = []
+            for slide in prs.slides:
+                for shape in slide.shapes:
+                    if shape.has_text_frame:
+                        for paragraph in shape.text_frame.paragraphs:
+                            text = paragraph.text.strip()
+                            if text:
+                                texts.append(text)
+            return "\n\n".join(texts)
+        except Exception as e:
+            msg = f"Failed to parse PPTX file '{file_name}': {e}"
+            raise ValueError(msg) from e
+    if lower_name.endswith(".ppt"):
+        try:
+            from pptx import Presentation
+
+            # Try python-pptx first (works for some .ppt files saved as .pptx internally)
+            prs = Presentation(BytesIO(file_content))
+            texts = []
+            for slide in prs.slides:
+                for shape in slide.shapes:
+                    if shape.has_text_frame:
+                        for paragraph in shape.text_frame.paragraphs:
+                            text = paragraph.text.strip()
+                            if text:
+                                texts.append(text)
+            return "\n\n".join(texts)
+        except Exception as e:
+            msg = f"Failed to parse PPT file '{file_name}': {e}"
+            raise ValueError(msg) from e
+    if lower_name.endswith(".xlsx"):
+        try:
+            from openpyxl import load_workbook
+
+            wb = load_workbook(BytesIO(file_content), read_only=True, data_only=True)
+            texts = []
+            for sheet in wb.worksheets:
+                for row in sheet.iter_rows(values_only=True):
+                    row_text = "\t".join(str(cell) if cell is not None else "" for cell in row)
+                    if row_text.strip():
+                        texts.append(row_text)
+            wb.close()
+            return "\n".join(texts)
+        except Exception as e:
+            msg = f"Failed to parse XLSX file '{file_name}': {e}"
+            raise ValueError(msg) from e
+    if lower_name.endswith(".xls"):
+        try:
+            import xlrd
+
+            book = xlrd.open_workbook(file_contents=file_content)
+            texts = []
+            for sheet in book.sheets():
+                for row_idx in range(sheet.nrows):
+                    row_text = "\t".join(str(cell.value) for cell in sheet.row(row_idx))
+                    if row_text.strip():
+                        texts.append(row_text)
+            return "\n".join(texts)
+        except Exception as e:
+            msg = f"Failed to parse XLS file '{file_name}': {e}"
+            raise ValueError(msg) from e
+    if lower_name.endswith(".csv"):
+        return file_content.decode("utf-8", errors="ignore")
     return file_content.decode("utf-8", errors="ignore")
 
 
