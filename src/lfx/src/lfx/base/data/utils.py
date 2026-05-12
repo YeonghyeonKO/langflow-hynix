@@ -37,7 +37,12 @@ TEXT_FILE_TYPES = [
     "xml",
     "html",
     "htm",
+    "doc",
     "docx",
+    "ppt",
+    "pptx",
+    "xls",
+    "xlsx",
     "py",
     "sh",
     "sql",
@@ -465,6 +470,10 @@ def parse_text_file_to_data(file_path: str, *, silent_errors: bool) -> Data | No
             text = parse_pdf_to_text(file_path)
         elif file_path.endswith(".docx"):
             text = read_docx_file(file_path)
+        elif file_path.endswith((".xlsx", ".xls", ".pptx", ".ppt", ".doc")):
+            with open(file_path, "rb") as f:
+                file_content = f.read()
+            text = extract_text_from_bytes(Path(file_path).name, file_content)
         else:
             text = read_text_file(file_path)
 
@@ -491,6 +500,13 @@ async def parse_text_file_to_data_async(file_path: str, *, silent_errors: bool) 
             text = await parse_pdf_to_text_async(file_path)
         elif file_path.endswith(".docx"):
             text = await read_docx_file_async(file_path)
+        elif file_path.endswith((".xlsx", ".xls", ".pptx", ".ppt", ".doc")):
+            # Read binary and use extract_text_from_bytes
+            import aiofiles
+
+            async with aiofiles.open(file_path, "rb") as f:
+                file_content = await f.read()
+            text = extract_text_from_bytes(Path(file_path).name, file_content)
         else:
             # Text files - read directly, no temp file needed
             text = await read_text_file_async(file_path)
