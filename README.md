@@ -37,20 +37,41 @@
 - SSO 버튼 텍스트 동적 설정
 - Playground 사이드바 모드 복원 (풀스크린 자동전환 제거)
 - 외부 API 번들 제거 (사이드바 + 검색 필터), 로컬/자체호스팅 번들만 유지
-- Discord, X(Twitter) 아이콘/링크 제거
+- Discord, X(Twitter), GitHub 아이콘/링크 제거
 - SSO/non-SSO 로그인 페이지 통합 (SSO → SSO 버튼, non-SSO → id/pw 폼)
 - Logout: SSO 시 Keycloak logout, non-SSO 시 표준 logout
+- 로그인 페이지: "Sign in to Langflow" → "AI Agent Builder"
+- Welcome 페이지: "Welcome to SK hynix AI Agent Builder" + Agent Hub / Agent Builder Channel 링크
+- 상단바: Agent Hub 링크 (`LANGFLOW_AGENT_HUB_URL` 환경변수)
+- Settings: MCP Servers / MCP Client 메뉴 제거
+- HTTP 환경에서 Copy 버튼 동작하지 않는 문제 수정 (`document.execCommand` fallback)
 
 ### Model Providers
 - vLLM을 기본 Model Provider로 추가 (Settings → Model Providers)
 - vLLM 서버 /v1/models API 동적 모델 조회
 - vLLM Embeddings 지원 (EMBEDDING_PROVIDER_CLASS_MAPPING)
+- Language Model 드롭다운에서 vLLM Embeddings 모델 제외
 - "Available Models" 통합 표시 (LLM/Embedding 구분 없이)
-- API Key optional (로컬 서버 지원)
-- 친절한 에러 메시지 (연결 실패, 인증 오류, 타임아웃 구분)
+- API Key: Global Variables / Model Provider vars / 환경변수 모두 지원
 - Language Model / Agent 컴포넌트에서 vLLM provider 선택 시 `base_url` 자동 해석 (component > DB > 환경변수)
 - provider 전환 시 stale API key 방지 (vLLM 전용 키 우선 사용)
+- provider 변수 개별 저장 시 validation race condition 수정
 - air-gapped 환경 지원: tiktoken 비활성화, API key dummy fallback
+- 친절한 에러 메시지 (연결 실패, 인증 오류, 타임아웃 구분)
+
+### KnowledgeBase
+- DRM 감지/해제 기능 (`LANGFLOW_DRM_ENABLED`, `LANGFLOW_DRM_DECRYPT_URL`)
+  - 대상: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX
+  - Keycloak SSO employee_id로 권한 확인 + `empNo` 쿼리 파라미터 전달
+- 파일 파싱 포맷 추가: PPTX, XLSX, XLS, PPT, DOC (python-pptx, openpyxl, xlrd)
+- DOCX/PPTX 테이블 콘텐츠 추출
+- XLSX OOM 방지 (10,000행 제한)
+- 업로드 허용 파일: md, json, txt, pdf, doc, docx, ppt, pptx, xls, xlsx, csv (최대 20MB)
+
+### URLComponent / SSL
+- URLComponent에 Verify SSL 옵션 추가 (`LANGFLOW_URL_VERIFY_SSL=false`)
+- Langflow Assistant에서도 환경변수 기반 SSL 비활성화 적용
+- SSL 비활성화 시 async → sync 전환 (aiohttp 우회)
 
 ### Docker / CI
 - `docker/keycloak-sso.Dockerfile` — SSO 플러그인 포함 이미지
@@ -83,56 +104,35 @@ docker build -f docker/keycloak-sso.Dockerfile -t langflow-hynix:v1.10.0-hynix-r
 
 ## Docker Images
 
-| 이미지 | 용도 | SSO |
-|--------|------|-----|
-| `dk02315/langflow-hynix:v1.9.1-hynix-rc9` | Backend (id/pw 로그인) | X |
-| `dk02315/langflow-hynix:v1.9.0-hynix-sso-rc2` | Backend (Keycloak SSO) | O |
-| `dk02315/langflow-hynix-frontend:v1.9.1-hynix-rc9` | Frontend (nginx, 공용) | 동적 |
+| 이미지 | 용도 |
+|--------|------|
+| `dk02315/langflow-hynix:v1.9.1-hynix-sso-rc30` | Backend (Keycloak SSO) |
 
-태그 push 시 GitHub Actions가 3종 이미지를 자동 빌드합니다. 수동 빌드:
+태그 push 시 GitHub Actions가 Docker 이미지를 자동 빌드합니다.
 
 ```bash
-# SSO 포함
-docker build -f docker/keycloak-sso.Dockerfile --build-arg INSTALL_SSO=true -t langflow-hynix:v1.9.0-hynix-sso-rc2 .
-
-# SSO 없이
-docker build -f docker/keycloak-sso.Dockerfile --build-arg INSTALL_SSO=false -t langflow-hynix:v1.9.1-hynix-rc9 .
-
-# Frontend
-docker build -f docker/frontend/build_and_push_frontend.Dockerfile -t langflow-hynix-frontend:v1.9.1-hynix-rc9 .
+docker pull dk02315/langflow-hynix:v1.9.1-hynix-sso-rc30
 ```
 
 ## Docker 실행
 
-**A서비스 — Keycloak SSO (BE + FE 분리)**
-
 ```bash
-# Backend (API only)
 docker run -d -p 7860:7860 \
   -e KEYCLOAK_ENABLED=true \
   -e KEYCLOAK_SERVER_URL=https://keycloak.company.com \
   -e KEYCLOAK_REALM=company \
   -e KEYCLOAK_CLIENT_ID=langflow \
   -e KEYCLOAK_CLIENT_SECRET=<secret> \
-  -e KEYCLOAK_REDIRECT_URI=http://localhost:3000/api/v1/keycloak/callback \
+  -e KEYCLOAK_REDIRECT_URI=http://localhost:7860/api/v1/keycloak/callback \
   -e LANGFLOW_AUTO_LOGIN=false \
   -e LANGFLOW_SECRET_KEY=<random-32-chars> \
-  dk02315/langflow-hynix:v1.9.0-hynix-sso-rc2 langflow run --backend-only
-
-# Frontend (nginx → Backend proxy)
-docker run -d -p 3000:3000 \
-  -e BACKEND_URL=http://<backend-host>:7860 \
-  -e FRONTEND_PORT=3000 \
-  dk02315/langflow-hynix-frontend:v1.9.1-hynix-rc9
-```
-
-**B서비스 — id/pw 로그인 (올인원)**
-
-```bash
-docker run -p 7860:7860 \
-  -e LANGFLOW_AUTO_LOGIN=false \
-  -e LANGFLOW_SECRET_KEY=<random-32-chars> \
-  dk02315/langflow-hynix:v1.9.1-hynix-rc9
+  -e LANGFLOW_AGENT_HUB_URL=https://agent-hub.company.com \
+  -e LANGFLOW_AGENT_BUILDER_CHANNEL=https://channel.company.com \
+  -e LANGFLOW_URL_VERIFY_SSL=false \
+  -e LANGFLOW_DRM_ENABLED=true \
+  -e LANGFLOW_DRM_DECRYPT_URL=http://drm-api.company.com/DRM/decrypt/file \
+  -e LANGFLOW_DRM_GW_ROOT_KEY=<gw-root-key> \
+  dk02315/langflow-hynix:v1.9.1-hynix-sso-rc30
 ```
 
 **SSO 로컬 테스트 (Keycloak + Mock HCP)**
@@ -141,12 +141,25 @@ docker run -p 7860:7860 \
 docker compose -f docker/keycloak-sso.docker-compose.yml up -d
 ```
 
+## 환경변수 요약
+
+| 환경변수 | 설명 | 필수 |
+|----------|------|------|
+| `LANGFLOW_SECRET_KEY` | 암호화 키 (고정값 권장) | O |
+| `LANGFLOW_AGENT_HUB_URL` | Agent Hub 링크 (상단바 + Welcome 페이지) | X |
+| `LANGFLOW_AGENT_BUILDER_CHANNEL` | Agent Builder Channel 링크 (Welcome 페이지) | X |
+| `LANGFLOW_URL_VERIFY_SSL` | `false` 시 URLComponent SSL 검증 비활성화 | X |
+| `LANGFLOW_DRM_ENABLED` | `true` 시 DRM 감지/해제 활성화 | X |
+| `LANGFLOW_DRM_CHECK_URL` | DRM 권한 확인 API (없으면 스킵) | X |
+| `LANGFLOW_DRM_DECRYPT_URL` | DRM 해제 API | DRM 사용 시 O |
+| `LANGFLOW_DRM_GW_ROOT_KEY` | DRM API gateway root key 헤더 | X |
+
 ## Helm 배포
 
 ```bash
 helm install langflow-<사번> helm/langflow/ \
   --set empno=<사번> \
-  --set backend.image.ssoTag=v1.9.0-hynix-sso-rc2 \
+  --set backend.image.ssoTag=v1.9.1-hynix-sso-rc30 \
   --set keycloak.serverUrl=https://keycloak.company.com \
   --set keycloak.realm=company \
   --set keycloak.clientId=langflow \
