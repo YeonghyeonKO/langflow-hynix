@@ -415,19 +415,33 @@ def extract_text_from_bytes(file_name: str, file_content: bytes, *, employee_id:
         try:
             import xlrd
 
+            MAX_ROWS = 10_000  # OOM prevention
             book = xlrd.open_workbook(file_contents=file_content)
             texts = []
+            row_count = 0
             for sheet in book.sheets():
                 for row_idx in range(sheet.nrows):
+                    row_count += 1
+                    if row_count > MAX_ROWS:
+                        logger.warning("XLS '%s' truncated at %d rows to prevent OOM", file_name, MAX_ROWS)
+                        break
                     row_text = "\t".join(str(cell.value) for cell in sheet.row(row_idx))
                     if row_text.strip():
                         texts.append(row_text)
+                if row_count > MAX_ROWS:
+                    break
             return "\n".join(texts)
         except Exception as e:
             msg = f"Failed to parse XLS file '{file_name}': {e}"
             raise ValueError(msg) from e
     if lower_name.endswith(".csv"):
-        return file_content.decode("utf-8", errors="ignore")
+        MAX_LINES = 10_000  # OOM prevention
+        decoded = file_content.decode("utf-8", errors="ignore")
+        lines = decoded.split("\n")
+        if len(lines) > MAX_LINES:
+            logger.warning("CSV '%s' truncated at %d lines to prevent OOM", file_name, MAX_LINES)
+            return "\n".join(lines[:MAX_LINES])
+        return decoded
     return file_content.decode("utf-8", errors="ignore")
 
 
