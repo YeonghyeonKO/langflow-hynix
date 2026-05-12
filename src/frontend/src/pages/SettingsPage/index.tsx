@@ -41,26 +41,6 @@ export default function SettingsPage(): JSX.Element {
 
   sidebarNavItems.push(
     {
-      title: t("settings.nav.mcpServers"),
-      href: "/settings/mcp-servers",
-      icon: (
-        <ForwardedIconComponent
-          name="Mcp"
-          className="w-4 flex-shrink-0 justify-start stroke-[1.5]"
-        />
-      ),
-    },
-    {
-      title: "Langflow MCP Client",
-      href: "/settings/mcp-client",
-      icon: (
-        <ForwardedIconComponent
-          name="Terminal"
-          className="w-4 flex-shrink-0 justify-start stroke-[1.5]"
-        />
-      ),
-    },
-    {
       title: t("settings.nav.globalVariables"),
       href: "/settings/global-variables",
       icon: (
