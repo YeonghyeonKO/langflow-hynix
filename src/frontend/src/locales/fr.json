@@ -42,7 +42,7 @@
   "auth.confirmPasswordPlaceholder": "Confirmez votre mot de passe",
   "auth.confirmPasswordRequired": "Veuillez confirmer votre mot de passe",
   "auth.haveAccount": "Vous avez déjà un compte?",
-  "auth.loginTitle": "Connectez-vous à Langflow",
+  "auth.loginTitle": "AI Agent Builder",
   "auth.noAccount": "Vous n'avez pas de compte ?",
   "auth.passwordEnterRequired": "Veuillez saisir un mot de passe",
   "auth.passwordLabel": "Mot de passe",

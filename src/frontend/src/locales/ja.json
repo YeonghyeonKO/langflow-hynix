@@ -42,7 +42,7 @@
   "auth.confirmPasswordPlaceholder": "パスワードを確認してください",
   "auth.confirmPasswordRequired": "パスワードの確認をお願いします",
   "auth.haveAccount": "すでにアカウントをお持ちですか？",
-  "auth.loginTitle": "Langflowにログイン",
+  "auth.loginTitle": "AI Agent Builder",
   "auth.noAccount": "アカウントをお持ちでない場合",
   "auth.passwordEnterRequired": "パスワードを入力してください",
   "auth.passwordLabel": "パスワード",
