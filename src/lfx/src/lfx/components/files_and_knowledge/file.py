@@ -74,10 +74,7 @@ class FileComponent(BaseFileComponent):
         "pptm",
         "potm",
         "ppsm",
-        "pptx",
         "tiff",
-        "xls",
-        "xlsx",
         "xhtml",
         "webp",
     ]
