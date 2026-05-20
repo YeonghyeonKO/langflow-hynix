@@ -86,18 +86,23 @@ langflow:
   store: "false"           # disable Langflow Store API (air-gapped)
   terminationGracePeriodSeconds: 60
 
-# -- NFS direct mounts (flow data & custom components)
+# -- NFS additional volumes (flow data & custom components)
+# Uses PV/PVC to support mountOptions (nfsvers, hard, timeo, etc.)
 nfsVolumes:
   flow:
     enabled: false
     server: ""               # e.g. nas.company.com
     path: "/langflow/prd/flow"
     mountPath: /app/flow
+    storage: 5Gi
+    mountOptions: []         # e.g. [nfsvers=4.1, hard, timeo=600]
   component:
     enabled: false
     server: ""               # e.g. nas.company.com
     path: "/langflow/prd/component"
     mountPath: /app/custom_components
+    storage: 5Gi
+    mountOptions: []         # e.g. [nfsvers=4.1, hard, timeo=600]
 
 # -- NFS PersistentVolume
 nfs:

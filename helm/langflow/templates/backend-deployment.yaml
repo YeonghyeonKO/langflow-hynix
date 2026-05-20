@@ -147,15 +147,13 @@ spec:
             claimName: {{ include "langflow.fullname" . }}-data
         {{- if .Values.nfsVolumes.flow.enabled }}
         - name: nfs-flow
-          nfs:
-            server: {{ .Values.nfsVolumes.flow.server }}
-            path: {{ .Values.nfsVolumes.flow.path }}
+          persistentVolumeClaim:
+            claimName: {{ include "langflow.fullname" . }}-nfs-flow
         {{- end }}
         {{- if .Values.nfsVolumes.component.enabled }}
         - name: nfs-component
-          nfs:
-            server: {{ .Values.nfsVolumes.component.server }}
-            path: {{ .Values.nfsVolumes.component.path }}
+          persistentVolumeClaim:
+            claimName: {{ include "langflow.fullname" . }}-nfs-component
         {{- end }}
         {{- if .Values.ssl.enabled }}
         - name: ca-cert
