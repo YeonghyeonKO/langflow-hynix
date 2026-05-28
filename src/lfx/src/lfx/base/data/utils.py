@@ -1,8 +1,6 @@
 import contextlib
 import logging
 import tempfile
-
-from lfx.log.logger import logger
 import unicodedata
 from collections.abc import Callable
 from concurrent import futures
@@ -17,6 +15,7 @@ from defusedxml import ElementTree
 from pypdf import PdfReader
 
 from lfx.base.data.storage_utils import read_file_bytes
+from lfx.log.logger import logger
 from lfx.schema.data import Data
 from lfx.services.deps import get_settings_service
 from lfx.utils.async_helpers import run_until_complete
@@ -347,9 +346,7 @@ def extract_text_from_bytes(file_name: str, file_content: bytes, *, employee_id:
                 tmp_path = tmp.name
             try:
                 # Use antiword or fallback to textract-like approach
-                result = subprocess.run(
-                    ["antiword", tmp_path], capture_output=True, text=True, timeout=30
-                )
+                result = subprocess.run(["antiword", tmp_path], check=False, capture_output=True, text=True, timeout=30)
                 if result.returncode == 0:
                     return result.stdout
                 # Fallback: try python-docx on .doc (works for some formats)

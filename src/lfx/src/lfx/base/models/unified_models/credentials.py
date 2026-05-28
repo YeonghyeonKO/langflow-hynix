@@ -152,7 +152,9 @@ def get_all_variables_for_provider(user_id: UUID | str | None, provider: str) ->
                 except (ValueError, Exception) as e:  # noqa: BLE001
                     logger.warning(
                         "get_all_variables_for_provider: %s lookup failed: %s(%s)",
-                        var_key, type(e).__name__, e,
+                        var_key,
+                        type(e).__name__,
+                        e,
                     )
                     # Variable not found - check environment
                     env_value = os.environ.get(var_key)
