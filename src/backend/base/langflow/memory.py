@@ -145,10 +145,45 @@ async def aadd_messages(messages: Message | list[Message], flow_id: str | UUID |
         messages_models = [MessageTable.from_message(msg, flow_id=flow_id) for msg in messages]
         async with session_scope() as session:
             messages_models = await aadd_messagetables(messages_models, session)
+
+        # Cleanup old messages per session to prevent unbounded growth
+        session_ids = {m.session_id for m in messages_models if m.session_id}
+        for sid in session_ids:
+            await _cleanup_old_messages_per_session(sid)
+
         return [await Message.create(**message.model_dump()) for message in messages_models]
     except Exception as e:
         await logger.aexception(e)
         raise
+
+
+async def _cleanup_old_messages_per_session(session_id: str) -> None:
+    """Delete oldest messages beyond the configured limit for a session."""
+    from langflow.services.deps import get_settings_service
+
+    try:
+        max_messages = get_settings_service().settings.max_messages_per_session
+    except Exception:  # noqa: BLE001
+        return
+
+    if not max_messages or max_messages <= 0:
+        return
+
+    try:
+        async with session_scope() as session:
+            delete_older = delete(MessageTable).where(
+                MessageTable.session_id == session_id,
+                col(MessageTable.id).in_(
+                    select(MessageTable.id)
+                    .where(MessageTable.session_id == session_id)
+                    .order_by(col(MessageTable.timestamp).desc())
+                    .offset(max_messages)
+                ),
+            )
+            await session.exec(delete_older)
+            await session.commit()
+    except Exception:  # noqa: BLE001
+        await logger.adebug(f"Failed to cleanup old messages for session {session_id}")
 
 
 async def aupdate_messages(messages: Message | list[Message]) -> list[Message]:

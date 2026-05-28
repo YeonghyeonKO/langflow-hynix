@@ -312,6 +312,8 @@ class Settings(BaseSettings):
     """If set to True, tracing will be deactivated."""
     max_transactions_to_keep: int = 3000
     """The maximum number of transactions to keep in the database."""
+    max_messages_per_session: int = 500
+    """The maximum number of messages to keep per session. Older messages are deleted on each new message store."""
     max_vertex_builds_to_keep: int = 3000
     """The maximum number of vertex builds to keep in the database."""
     max_vertex_builds_per_vertex: int = 50
