@@ -88,6 +88,7 @@ langflow:
 
 # -- NFS additional volumes (flow data & custom components)
 # Uses PV/PVC to support mountOptions (nfsvers, hard, timeo, etc.)
+# NFS v3 환경에서는 nolock 옵션 필수 (SQLite 파일 잠금 충돌 방지)
 nfsVolumes:
   flow:
     enabled: false
@@ -95,21 +96,22 @@ nfsVolumes:
     path: "/langflow/prd/flow"
     mountPath: /app/flow
     storage: 5Gi
-    mountOptions: []         # e.g. [nfsvers=4.1, hard, timeo=600]
+    mountOptions: []         # e.g. [nfsvers=3, nolock] or [nfsvers=4.1, hard, timeo=600]
   component:
     enabled: false
     server: ""               # e.g. nas.company.com
     path: "/langflow/prd/component"
     mountPath: /app/custom_components
     storage: 5Gi
-    mountOptions: []         # e.g. [nfsvers=4.1, hard, timeo=600]
+    mountOptions: []         # e.g. [nfsvers=3, nolock] or [nfsvers=4.1, hard, timeo=600]
 
-# -- NFS PersistentVolume
+# -- NFS PersistentVolume (SQLite DB 저장용)
+# NFS v3 사용 시 mountOptions에 nolock 반드시 추가
 nfs:
   enabled: false
   server: ""
   basePath: ""
-  mountOptions: []
+  mountOptions: []           # e.g. [nfsvers=3, nolock, hard, timeo=600]
   initImage: busybox:1.36
 
 # -- Private registry credentials (creates imagePullSecret automatically)
