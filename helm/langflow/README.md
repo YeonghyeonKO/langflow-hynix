@@ -218,12 +218,18 @@ kubectl delete namespace langflow-2074795
 | `nfsVolumes.flow.server` | NFS 서버 주소 | `""` |
 | `nfsVolumes.flow.path` | NFS 경로 | `"/langflow/prd/flow"` |
 | `nfsVolumes.flow.mountPath` | 컨테이너 내 마운트 경로 | `/app/flow` |
+| `nfsVolumes.flow.storage` | PV/PVC 용량 | `5Gi` |
+| `nfsVolumes.flow.mountOptions` | NFS 마운트 옵션 | `[]` |
 | `nfsVolumes.component.enabled` | 커스텀 컴포넌트 NFS 마운트 | `false` |
 | `nfsVolumes.component.server` | NFS 서버 주소 | `""` |
 | `nfsVolumes.component.path` | NFS 경로 | `"/langflow/prd/component"` |
 | `nfsVolumes.component.mountPath` | 컨테이너 내 마운트 경로 | `/app/custom_components` |
+| `nfsVolumes.component.storage` | PV/PVC 용량 | `5Gi` |
+| `nfsVolumes.component.mountOptions` | NFS 마운트 옵션 | `[]` |
 
-사용 예시:
+> **NFS v3 환경**: `mountOptions`에 `nolock`을 반드시 추가하세요. NFS v3의 NLM(Network Lock Manager)이 SQLite 파일 잠금과 충돌하여 I/O 지연 및 DB 손상을 유발할 수 있습니다.
+
+사용 예시 (NFS v3 + nolock):
 
 ```yaml
 nfsVolumes:
@@ -232,11 +238,19 @@ nfsVolumes:
     server: "nas.company.com"
     path: "/langflow/prd/flow"
     mountPath: /app/flow
+    storage: 5Gi
+    mountOptions:
+      - nfsvers=3
+      - nolock
   component:
     enabled: true
     server: "nas.company.com"
     path: "/langflow/prd/component"
     mountPath: /app/custom_components
+    storage: 5Gi
+    mountOptions:
+      - nfsvers=3
+      - nolock
 
 backend:
   extraEnv:
@@ -251,7 +265,7 @@ backend:
 | `nfs.enabled` | NFS PV 자동 생성 | `false` |
 | `nfs.server` | NFS 서버 IP | `""` |
 | `nfs.basePath` | NFS 기본 경로 | `""` |
-| `nfs.mountOptions` | NFS 마운트 옵션 | `[]` |
+| `nfs.mountOptions` | NFS 마운트 옵션 (v3: `[nfsvers=3, nolock]`) | `[]` |
 | `nfs.initImage` | 디렉토리 생성용 initContainer 이미지 | `busybox:1.36` |
 
 `nfs.enabled=true`이면:
