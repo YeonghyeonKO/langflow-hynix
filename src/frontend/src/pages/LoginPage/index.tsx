@@ -85,7 +85,7 @@ export default function LoginPage(): JSX.Element {
             className="mb-4 h-10 w-10 scale-[1.5]"
           />
           <span className="mb-6 text-2xl font-semibold text-primary">
-            Sign in to Langflow
+            AI Agent Builder
           </span>
           {errorCode && (
             <div className="mb-4 w-full rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -144,7 +144,7 @@ export default function LoginPage(): JSX.Element {
             className="mb-4 h-10 w-10 scale-[1.5]"
           />
           <span className="mb-6 text-2xl font-semibold text-primary">
-            Sign in to Langflow
+            AI Agent Builder
           </span>
           <div className="mb-3 w-full">
             <Form.Field name="username">
