@@ -1,7 +1,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useGetFlowId } from "@/components/core/playgroundComponent/hooks/use-get-flow-id";
 import { useGetMessagesQuery } from "@/controllers/API/queries/messages";
+import { api } from "@/controllers/API/api";
+import { getURL } from "@/controllers/API/helpers/constants";
 import { usePlaygroundStore } from "@/stores/playgroundStore";
 import type { ChatMessageType } from "@/types/chat";
 import type { Message } from "@/types/messages";
@@ -13,12 +15,22 @@ export const useChatHistory = (visibleSession: string | null) => {
   const queryClient = useQueryClient();
   const isPlaygroundOpen = usePlaygroundStore((state) => state.isOpen);
 
-  // Fetch messages from backend only when playground is visible and cap at 100
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  // Reset pagination when session or flow changes
+  useEffect(() => {
+    setOffset(0);
+    setHasMore(true);
+  }, [visibleSession, currentFlowId]);
+
+  // Fetch messages from backend only when playground is visible and cap at 20
   // to prevent unbounded state growth that causes canvas re-render slowdown.
   const messageQueryParams: Parameters<typeof useGetMessagesQuery>[0] = {
     id: currentFlowId,
     mode: "union",
-    params: { limit: 30 },
+    params: { limit: 20 },
   };
   const { data: queryData } = useGetMessagesQuery(messageQueryParams, {
     enabled: isPlaygroundOpen,
@@ -69,6 +81,47 @@ export const useChatHistory = (visibleSession: string | null) => {
       }
     }
   }, [queryData, queryClient, sessionCacheKey, currentFlowId, visibleSession]);
+
+  // Load older messages (scroll-up pagination)
+  const loadMore = useCallback(async () => {
+    if (isLoadingMore || !hasMore || !currentFlowId) return;
+    setIsLoadingMore(true);
+    try {
+      const newOffset = offset + 20;
+      const response = await api.get(`${getURL("MESSAGES")}`, {
+        params: { flow_id: currentFlowId, limit: 20, offset: newOffset },
+      });
+      const olderMessages: Message[] = response.data || [];
+
+      if (olderMessages.length < 20) {
+        setHasMore(false);
+      }
+
+      const filtered = olderMessages.filter((msg: Message) =>
+        isMessageForSession(msg, currentFlowId, visibleSession),
+      );
+
+      if (filtered.length > 0) {
+        setOffset(newOffset);
+        const existing =
+          queryClient.getQueryData<Message[]>(sessionCacheKey) || [];
+        // Prepend older messages; sortSenderMessages re-sorts everything for display
+        queryClient.setQueryData(sessionCacheKey, [...filtered, ...existing]);
+      }
+    } catch (e) {
+      console.error("Failed to load more messages:", e);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [
+    isLoadingMore,
+    hasMore,
+    offset,
+    currentFlowId,
+    visibleSession,
+    sessionCacheKey,
+    queryClient,
+  ]);
 
   // Use session cache as the single source of truth
   // updateMessage and addUserMessage handle all updates (placeholders, streaming, etc.)
@@ -145,5 +198,5 @@ export const useChatHistory = (visibleSession: string | null) => {
     return sorted;
   }, [messages, visibleSession, currentFlowId]);
 
-  return chatHistory;
+  return { chatHistory, loadMore, hasMore, isLoadingMore };
 };
