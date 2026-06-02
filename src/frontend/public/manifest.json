@@ -1,7 +1,7 @@
 {
-  "name": "Langflow",
-  "short_name": "Langflow",
-  "description": "Langflow is a low-code builder that makes it easier to build powerful AIs that can use any API, model, or database.",
+  "name": "AI Agent Builder",
+  "short_name": "AI Agent",
+  "description": "SK하이닉스 AI Agent Builder — 누구나 쉽게 AI 에이전트를 만들고 배포할 수 있는 플랫폼.",
   "icons": [
     {
       "src": "icons/32x32.png",
