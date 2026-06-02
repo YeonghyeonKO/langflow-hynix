@@ -10,11 +10,7 @@ export const LangflowCounts = () => {
 
   return (
     <div className="flex items-center gap-3">
-      <ShadTooltip
-        content="Go to Agent Hub"
-        side="bottom"
-        styleClasses="z-10"
-      >
+      <ShadTooltip content="Go to Agent Hub" side="bottom" styleClasses="z-10">
         <Button
           unstyled
           onClick={() => window.open(agentHubUrl, "_blank")}

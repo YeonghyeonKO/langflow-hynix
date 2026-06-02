@@ -28,30 +28,32 @@ const ProviderList = ({
   } = useGetModelProviders({});
 
   const filteredProviders: Provider[] = useMemo(() => {
-    return rawProviders.filter((provider) =>
-      ALLOWED_PROVIDERS.includes(provider?.provider?.toLowerCase() ?? ""),
-    ).map((provider) => {
-      const providerLower = provider?.provider?.toLowerCase() ?? "";
-      const isVllm = providerLower === "vllm";
-      const isVllmEmbeddings = providerLower === "vllm embeddings";
-      const matchingModels =
-        provider?.models?.filter((model) => {
-          if (modelType === "all") return true;
-          if (isVllm) return modelType === "llm";
-          if (isVllmEmbeddings) return modelType === "embeddings";
-          return model?.metadata?.model_type === modelType;
-        }) || [];
+    return rawProviders
+      .filter((provider) =>
+        ALLOWED_PROVIDERS.includes(provider?.provider?.toLowerCase() ?? ""),
+      )
+      .map((provider) => {
+        const providerLower = provider?.provider?.toLowerCase() ?? "";
+        const isVllm = providerLower === "vllm";
+        const isVllmEmbeddings = providerLower === "vllm embeddings";
+        const matchingModels =
+          provider?.models?.filter((model) => {
+            if (modelType === "all") return true;
+            if (isVllm) return modelType === "llm";
+            if (isVllmEmbeddings) return modelType === "embeddings";
+            return model?.metadata?.model_type === modelType;
+          }) || [];
 
-      return {
-        provider: provider.provider,
-        icon: provider.icon,
-        is_enabled: provider.is_enabled,
-        is_configured: provider.is_configured,
-        model_count: matchingModels.length,
-        models: matchingModels,
-        api_docs_url: provider.api_docs_url,
-      };
-    });
+        return {
+          provider: provider.provider,
+          icon: provider.icon,
+          is_enabled: provider.is_enabled,
+          is_configured: provider.is_configured,
+          model_count: matchingModels.length,
+          models: matchingModels,
+          api_docs_url: provider.api_docs_url,
+        };
+      });
   }, [rawProviders, modelType]);
 
   const handleProviderSelect = (provider: Provider) => {

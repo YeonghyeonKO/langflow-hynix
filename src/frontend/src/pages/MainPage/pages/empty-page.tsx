@@ -28,7 +28,9 @@ export const EmptyPageCommunity = ({
   const folders = useFolderStore((state) => state.folders);
   const userData = useAuthStore(useShallow((state) => state.userData));
   const agentHubUrl = useUtilityStore((state) => state.agentHubUrl);
-  const agentBuilderChannelUrl = useUtilityStore((state) => state.agentBuilderChannelUrl);
+  const agentBuilderChannelUrl = useUtilityStore(
+    (state) => state.agentBuilderChannelUrl,
+  );
   const { mutate: updateUser } = useUpdateUser();
   const { mutate: mutateLoggedUser } = useGetUserData();
 
@@ -126,7 +128,11 @@ export const EmptyPageCommunity = ({
                   className="group mx-3 h-[84px] sm:mx-0"
                   onClick={() => {
                     handleUserTrack("agent_builder_channel_clicked")();
-                    window.open(agentBuilderChannelUrl, "_blank", "noopener,noreferrer");
+                    window.open(
+                      agentBuilderChannelUrl,
+                      "_blank",
+                      "noopener,noreferrer",
+                    );
                   }}
                   data-testid="empty_page_agent_builder_channel_button"
                 >
@@ -135,7 +141,9 @@ export const EmptyPageCommunity = ({
                       <div className="flex gap-3">
                         <HiOutlineCube className="h-6 w-6" />
                         <div>
-                          <span className="font-semibold">Agent Builder Channel</span>
+                          <span className="font-semibold">
+                            Agent Builder Channel
+                          </span>
                         </div>
                       </div>
                       <div>
