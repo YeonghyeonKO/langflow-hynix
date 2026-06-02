@@ -127,6 +127,8 @@ WORKDIR /app
 ENV LANGFLOW_HOST=0.0.0.0
 ENV LANGFLOW_PORT=7860
 ENV LANGFLOW_AUTO_LOGIN=false
+# LiteLLM이 GitHub에서 원격 모델 비용 맵을 가져오지 않도록 설정 (SSL 차단 환경 대응)
+ENV LITELLM_LOCAL_MODEL_COST_MAP=True
 
 # ── Keycloak SSO defaults (only meaningful when INSTALL_SSO=true) ─────────────
 ARG INSTALL_SSO=true
