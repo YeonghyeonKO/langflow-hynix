@@ -18,7 +18,7 @@ export const useChatHistory = (visibleSession: string | null) => {
   const messageQueryParams: Parameters<typeof useGetMessagesQuery>[0] = {
     id: currentFlowId,
     mode: "union",
-    params: { limit: 100 },
+    params: { limit: 30 },
   };
   const { data: queryData } = useGetMessagesQuery(messageQueryParams, {
     enabled: isPlaygroundOpen,

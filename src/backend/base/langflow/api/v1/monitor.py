@@ -91,7 +91,7 @@ async def get_messages(
     sender: Annotated[str | None, Query()] = None,
     sender_name: Annotated[str | None, Query()] = None,
     order_by: Annotated[str | None, Query()] = "timestamp",
-    limit: Annotated[int | None, Query(ge=1)] = 100,
+    limit: Annotated[int | None, Query(ge=1)] = 30,
 ) -> list[MessageResponse]:
     try:
         # Use JOIN instead of subquery for better performance
