@@ -233,10 +233,12 @@ const useFlowStore = create<FlowStoreType>((set, get) => ({
   },
   addDataToFlowPool: (data: VertexBuildTypeAPI, nodeId: string) => {
     const prevPool = get().flowPool;
-    const prevEntries = prevPool[nodeId];
+    // All consumers only read the last entry ([length-1]).
+    // Replacing instead of appending prevents unbounded growth that
+    // slows down the canvas after repeated runs.
     const newFlowPool = {
       ...prevPool,
-      [nodeId]: prevEntries ? [...prevEntries, data] : [data],
+      [nodeId]: [data],
     };
     get().setFlowPool(newFlowPool);
   },
