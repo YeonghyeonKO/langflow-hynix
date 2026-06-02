@@ -91,7 +91,7 @@ async def get_messages(
     sender: Annotated[str | None, Query()] = None,
     sender_name: Annotated[str | None, Query()] = None,
     order_by: Annotated[str | None, Query()] = "timestamp",
-    limit: Annotated[int | None, Query(ge=1)] = 30,
+    limit: Annotated[int | None, Query(ge=1)] = 20,
     offset: Annotated[int | None, Query(ge=0)] = None,
 ) -> list[MessageResponse]:
     try:
