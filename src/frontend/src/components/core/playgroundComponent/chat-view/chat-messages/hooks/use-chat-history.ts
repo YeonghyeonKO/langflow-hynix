@@ -25,12 +25,12 @@ export const useChatHistory = (visibleSession: string | null) => {
     setHasMore(true);
   }, [visibleSession, currentFlowId]);
 
-  // Fetch messages from backend only when playground is visible and cap at 30
+  // Fetch messages from backend only when playground is visible and cap at 20
   // to prevent unbounded state growth that causes canvas re-render slowdown.
   const messageQueryParams: Parameters<typeof useGetMessagesQuery>[0] = {
     id: currentFlowId,
     mode: "union",
-    params: { limit: 30 },
+    params: { limit: 20 },
   };
   const { data: queryData } = useGetMessagesQuery(messageQueryParams, {
     enabled: isPlaygroundOpen,
@@ -87,13 +87,13 @@ export const useChatHistory = (visibleSession: string | null) => {
     if (isLoadingMore || !hasMore || !currentFlowId) return;
     setIsLoadingMore(true);
     try {
-      const newOffset = offset + 30;
+      const newOffset = offset + 20;
       const response = await api.get(`${getURL("MESSAGES")}`, {
-        params: { flow_id: currentFlowId, limit: 30, offset: newOffset },
+        params: { flow_id: currentFlowId, limit: 20, offset: newOffset },
       });
       const olderMessages: Message[] = response.data || [];
 
-      if (olderMessages.length < 30) {
+      if (olderMessages.length < 20) {
         setHasMore(false);
       }
 
