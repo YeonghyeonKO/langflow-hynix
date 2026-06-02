@@ -69,5 +69,6 @@ export const useUtilityStore = create<UtilityStoreType>((set, get) => ({
   agentHubUrl: "",
   setAgentHubUrl: (agentHubUrl: string) => set({ agentHubUrl }),
   agentBuilderChannelUrl: "",
-  setAgentBuilderChannelUrl: (agentBuilderChannelUrl: string) => set({ agentBuilderChannelUrl }),
+  setAgentBuilderChannelUrl: (agentBuilderChannelUrl: string) =>
+    set({ agentBuilderChannelUrl }),
 }));

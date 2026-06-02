@@ -87,7 +87,9 @@ export const useGetConfig: useQueryFunctionType<
   );
   const setMcpBaseUrl = useUtilityStore((state) => state.setMcpBaseUrl);
   const setAgentHubUrl = useUtilityStore((state) => state.setAgentHubUrl);
-  const setAgentBuilderChannelUrl = useUtilityStore((state) => state.setAgentBuilderChannelUrl);
+  const setAgentBuilderChannelUrl = useUtilityStore(
+    (state) => state.setAgentBuilderChannelUrl,
+  );
 
   const { query } = UseRequestProcessor();
 

@@ -106,7 +106,9 @@ const ModelSelection = ({
   };
 
   const isOllama = providerName?.toLowerCase() === "ollama";
-  const isVllm = providerName?.toLowerCase() === "vllm" || providerName?.toLowerCase() === "vllm embeddings";
+  const isVllm =
+    providerName?.toLowerCase() === "vllm" ||
+    providerName?.toLowerCase() === "vllm embeddings";
   const noModelsAvailable =
     (modelType === "llm" && llmModels.length === 0) ||
     (modelType === "embeddings" && embeddingModels.length === 0) ||
@@ -142,11 +144,7 @@ const ModelSelection = ({
           </a>
         </div>
       ) : isVllm ? (
-        renderModelSection(
-          "Available Models",
-          availableModels,
-          "available",
-        )
+        renderModelSection("Available Models", availableModels, "available")
       ) : (
         <>
           {modelType === "all" ? (

@@ -93,9 +93,7 @@ export default function LoginPage(): JSX.Element {
                 {SSO_ERROR_MESSAGES[errorCode] ?? `로그인 오류: ${errorCode}`}
               </p>
               {employeeId && (
-                <p className="mt-1 text-xs text-red-500">
-                  사번: {employeeId}
-                </p>
+                <p className="mt-1 text-xs text-red-500">사번: {employeeId}</p>
               )}
             </div>
           )}
@@ -149,8 +147,7 @@ export default function LoginPage(): JSX.Element {
           <div className="mb-3 w-full">
             <Form.Field name="username">
               <Form.Label className="data-[invalid]:label-invalid">
-                Username{" "}
-                <span className="font-medium text-destructive">*</span>
+                Username <span className="font-medium text-destructive">*</span>
               </Form.Label>
               <Form.Control asChild>
                 <Input
@@ -172,8 +169,7 @@ export default function LoginPage(): JSX.Element {
           <div className="mb-3 w-full">
             <Form.Field name="password">
               <Form.Label className="data-[invalid]:label-invalid">
-                Password{" "}
-                <span className="font-medium text-destructive">*</span>
+                Password <span className="font-medium text-destructive">*</span>
               </Form.Label>
               <InputComponent
                 onChange={(value) => {
