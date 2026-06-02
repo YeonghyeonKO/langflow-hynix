@@ -75,7 +75,7 @@ function ApiInterceptor() {
         const shouldRetryRefresh =
           isAuthenticated &&
           ((isAuthenticationError && !IS_AUTO_LOGIN) ||
-          (isAuthenticationError && !autoLogin && autoLogin !== undefined));
+            (isAuthenticationError && !autoLogin && autoLogin !== undefined));
 
         if (shouldRetryRefresh) {
           if (
