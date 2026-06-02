@@ -3775,12 +3775,12 @@
       "zoom": 0.5620453086026018
     }
   },
-  "description": "An AI-powered meeting summary generator that transcribes and summarizes meetings using  AssemblyAI and OpenAI for quick insights.",
+  "description": "회의 내용을 AI로 자동 요약하고 액션 아이템을 추출하는 어시스턴트입니다. 음성 파일 또는 텍스트를 입력하면 핵심 내용을 정리해 드립니다.",
   "endpoint_name": null,
   "id": "5f6a79a4-2a18-4754-b8fb-cbfabce79cc9",
   "is_component": false,
   "last_tested_version": "1.4.3",
-  "name": "Meeting Summary",
+  "name": "회의록 요약",
   "tags": [
     "chatbots",
     "content-generation"
