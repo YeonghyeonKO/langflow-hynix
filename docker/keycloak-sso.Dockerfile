@@ -58,7 +58,7 @@ COPY ./src /app/src
 COPY ./src/frontend /tmp/src/frontend
 WORKDIR /tmp/src/frontend
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci \
+    for i in 1 2 3; do npm ci && break || (echo "npm ci attempt $i failed, retrying..."; sleep 10); done \
     && ESBUILD_BINARY_PATH="" NODE_OPTIONS="--max-old-space-size=4096" JOBS=1 npm run build \
     && cp -r build /app/src/backend/langflow/frontend \
     && rm -rf /tmp/src/frontend
