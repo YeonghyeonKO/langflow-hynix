@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { useGetFlowId } from "@/components/core/playgroundComponent/hooks/use-get-flow-id";
 import { useGetMessagesQuery } from "@/controllers/API/queries/messages";
+import { usePlaygroundStore } from "@/stores/playgroundStore";
 import type { ChatMessageType } from "@/types/chat";
 import type { Message } from "@/types/messages";
 import { isMessageForSession } from "../../utils/session-filter";
@@ -10,13 +11,18 @@ import sortSenderMessages from "../utils/sort-sender-messages";
 export const useChatHistory = (visibleSession: string | null) => {
   const currentFlowId = useGetFlowId();
   const queryClient = useQueryClient();
+  const isPlaygroundOpen = usePlaygroundStore((state) => state.isOpen);
 
-  // Fetch messages from backend for initial load
+  // Fetch messages from backend only when playground is visible and cap at 100
+  // to prevent unbounded state growth that causes canvas re-render slowdown.
   const messageQueryParams: Parameters<typeof useGetMessagesQuery>[0] = {
     id: currentFlowId,
     mode: "union",
+    params: { limit: 100 },
   };
-  const { data: queryData } = useGetMessagesQuery(messageQueryParams);
+  const { data: queryData } = useGetMessagesQuery(messageQueryParams, {
+    enabled: isPlaygroundOpen,
+  });
 
   // Session cache key - this is the single source of truth for messages
   const sessionCacheKey = useMemo(
