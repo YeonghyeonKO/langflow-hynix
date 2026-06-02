@@ -80,6 +80,13 @@ RUN --mount=type=cache,target=/root/.cache/uv \
           ./src/backend/langflow-keycloak-sso; \
     fi
 
+# ── Extra packages (not in uv.lock: polars, mysql-connector; pymilvus version pin) ──
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install --python /app/.venv \
+        "polars>=1,<2" \
+        "mysql-connector-python>=9,<10" \
+        "pymilvus[model]>=2.6.7,<2.6.10"
+
 ################################
 # RUNTIME
 ################################
