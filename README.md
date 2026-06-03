@@ -10,7 +10,8 @@
 
 | 브랜치 | 역할 | 비고 |
 |--------|------|------|
-| `hynix/v1.9.1` | v1.9.1 + 커스텀 | **현행 (default)** |
+| `hynix/v1.9.5` | v1.9.5 + 커스텀 | **현행 (default)** |
+| `hynix/v1.9.1` | v1.9.1 + 커스텀 | 아카이브 |
 | `hynix/v1.9.0` | v1.9.0 + 커스텀 | 아카이브 |
 | `hynix/v1.8.4` | v1.8.4 + 커스텀 | 아카이브 |
 | `hynix/v1.8.3` | v1.8.3 + 커스텀 | 아카이브 |
@@ -19,7 +20,7 @@
 
 ## 커스텀 패치 목록
 
-커스텀 커밋 확인: `git log upstream/release-1.9.x..hynix/v1.9.1 --oneline`
+커스텀 커밋 확인: `git log upstream/release-1.9.x..hynix/v1.9.5 --oneline`
 
 ### Keycloak SSO
 - Keycloak SSO 플러그인 (`src/backend/langflow-keycloak-sso/`)
@@ -32,6 +33,7 @@
 - refresh/access token 쿠키 설정 (HTTP 환경 401 해결)
 
 ### Frontend
+- 브라우저 탭/PWA 타이틀 'Langflow' → 'AI Agent Builder' (`index.html`, `manifest.json`, Playground 동적 title)
 - 한글 IME 자모분리 이슈 수정
 - 한국어 로케일 (ko.json) 추가 + loadLanguage fallback
 - SSO 버튼 텍스트 동적 설정
@@ -45,6 +47,8 @@
 - 상단바: Agent Hub 링크 (`LANGFLOW_AGENT_HUB_URL` 환경변수)
 - Settings: MCP Servers / MCP Client 메뉴 제거
 - HTTP 환경에서 Copy 버튼 동작하지 않는 문제 수정 (`document.execCommand` fallback)
+- 채팅 히스토리 페이지네이션: 스크롤 업 시 이전 메시지 로드 (offset 기반 무한 스크롤)
+- 메시지 조회 limit 기본값 20 + Playground 열려있을 때만 조회 (캔버스 속도 저하 방지)
 
 ### Model Providers
 - vLLM을 기본 Model Provider로 추가 (Settings → Model Providers)
@@ -77,6 +81,8 @@
 - `docker/keycloak-sso.Dockerfile` — SSO 플러그인 포함 이미지
 - `docker/keycloak-sso.docker-compose.yml` — Keycloak + Mock HCP 로컬 테스트
 - GitHub Actions: 태그 push 시 Docker 이미지 자동 빌드 (Docker Hub + ghcr.io)
+- Docker npm ci ECONNRESET 재시도 로직 (최대 3회, 네트워크 불안정 환경 대응)
+- pymilvus[model] → pymilvus (ML extra 제거로 빌드 시간 단축)
 
 ### Helm Chart
 - per-employee Helm 배포 (`helm/langflow/`)
@@ -95,7 +101,7 @@ git fetch upstream --tags
 git checkout -b hynix/v1.10.0 upstream/release-1.10.0
 
 # 3. 최신 검증된 hynix 브랜치 머지
-git merge hynix/v1.9.1
+git merge hynix/v1.9.5
 
 # 4. 충돌 해결 → 테스트 → 태그 → Docker 빌드
 git tag v1.10.0-hynix-rc0
@@ -106,12 +112,12 @@ docker build -f docker/keycloak-sso.Dockerfile -t langflow-hynix:v1.10.0-hynix-r
 
 | 이미지 | 용도 |
 |--------|------|
-| `dk02315/langflow-hynix:v1.9.1-hynix-sso-rc30` | Backend (Keycloak SSO) |
+| `dk02315/langflow-hynix:v1.9.5-hynix-sso-rc8` | Backend (Keycloak SSO) — **최신** |
 
 태그 push 시 GitHub Actions가 Docker 이미지를 자동 빌드합니다.
 
 ```bash
-docker pull dk02315/langflow-hynix:v1.9.1-hynix-sso-rc30
+docker pull dk02315/langflow-hynix:v1.9.5-hynix-sso-rc8
 ```
 
 ## Docker 실행
@@ -132,7 +138,7 @@ docker run -d -p 7860:7860 \
   -e LANGFLOW_DRM_ENABLED=true \
   -e LANGFLOW_DRM_DECRYPT_URL=http://drm-api.company.com/DRM/decrypt/file \
   -e LANGFLOW_DRM_GW_ROOT_KEY=<gw-root-key> \
-  dk02315/langflow-hynix:v1.9.1-hynix-sso-rc30
+  dk02315/langflow-hynix:v1.9.5-hynix-sso-rc8
 ```
 
 **SSO 로컬 테스트 (Keycloak + Mock HCP)**
@@ -159,7 +165,7 @@ docker compose -f docker/keycloak-sso.docker-compose.yml up -d
 ```bash
 helm install langflow-<사번> helm/langflow/ \
   --set empno=<사번> \
-  --set backend.image.ssoTag=v1.9.1-hynix-sso-rc30 \
+  --set backend.image.ssoTag=v1.9.5-hynix-sso-rc8 \
   --set keycloak.serverUrl=https://keycloak.company.com \
   --set keycloak.realm=company \
   --set keycloak.clientId=langflow \
