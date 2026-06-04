@@ -112,12 +112,12 @@ docker build -f docker/keycloak-sso.Dockerfile -t langflow-hynix:v1.10.0-hynix-r
 
 | 이미지 | 용도 |
 |--------|------|
-| `dk02315/langflow-hynix:v1.9.5-hynix-sso-rc8` | Backend (Keycloak SSO) — **최신** |
+| `dk02315/langflow-hynix:v1.9.5-hynix-sso-rc10` | Backend (Keycloak SSO) — **최신** |
 
 태그 push 시 GitHub Actions가 Docker 이미지를 자동 빌드합니다.
 
 ```bash
-docker pull dk02315/langflow-hynix:v1.9.5-hynix-sso-rc8
+docker pull dk02315/langflow-hynix:v1.9.5-hynix-sso-rc10
 ```
 
 ## Docker 실행
@@ -138,7 +138,7 @@ docker run -d -p 7860:7860 \
   -e LANGFLOW_DRM_ENABLED=true \
   -e LANGFLOW_DRM_DECRYPT_URL=http://drm-api.company.com/DRM/decrypt/file \
   -e LANGFLOW_DRM_GW_ROOT_KEY=<gw-root-key> \
-  dk02315/langflow-hynix:v1.9.5-hynix-sso-rc8
+  dk02315/langflow-hynix:v1.9.5-hynix-sso-rc10
 ```
 
 **SSO 로컬 테스트 (Keycloak + Mock HCP)**
@@ -165,7 +165,7 @@ docker compose -f docker/keycloak-sso.docker-compose.yml up -d
 ```bash
 helm install langflow-<사번> helm/langflow/ \
   --set empno=<사번> \
-  --set backend.image.ssoTag=v1.9.5-hynix-sso-rc8 \
+  --set backend.image.ssoTag=v1.9.5-hynix-sso-rc10 \
   --set keycloak.serverUrl=https://keycloak.company.com \
   --set keycloak.realm=company \
   --set keycloak.clientId=langflow \
