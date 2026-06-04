@@ -15,13 +15,11 @@ export const useChatHistory = (visibleSession: string | null) => {
   const queryClient = useQueryClient();
   const isPlaygroundOpen = usePlaygroundStore((state) => state.isOpen);
 
-  const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   // Reset pagination when session or flow changes
   useEffect(() => {
-    setOffset(0);
     setHasMore(true);
   }, [visibleSession, currentFlowId]);
 
@@ -87,9 +85,15 @@ export const useChatHistory = (visibleSession: string | null) => {
     if (isLoadingMore || !hasMore || !currentFlowId) return;
     setIsLoadingMore(true);
     try {
-      const newOffset = offset + 20;
+      const existing =
+        queryClient.getQueryData<Message[]>(sessionCacheKey) || [];
       const response = await api.get(`${getURL("MESSAGES")}`, {
-        params: { flow_id: currentFlowId, limit: 20, offset: newOffset },
+        params: {
+          flow_id: currentFlowId,
+          ...(visibleSession ? { session_id: visibleSession } : {}),
+          limit: 20,
+          offset: existing.length,
+        },
       });
       const olderMessages: Message[] = response.data || [];
 
@@ -97,16 +101,13 @@ export const useChatHistory = (visibleSession: string | null) => {
         setHasMore(false);
       }
 
-      const filtered = olderMessages.filter((msg: Message) =>
-        isMessageForSession(msg, currentFlowId, visibleSession),
-      );
-
-      if (filtered.length > 0) {
-        setOffset(newOffset);
-        const existing =
-          queryClient.getQueryData<Message[]>(sessionCacheKey) || [];
-        // Prepend older messages; sortSenderMessages re-sorts everything for display
-        queryClient.setQueryData(sessionCacheKey, [...filtered, ...existing]);
+      if (olderMessages.length > 0) {
+        queryClient.setQueryData(sessionCacheKey, [
+          ...olderMessages,
+          ...existing,
+        ]);
+      } else {
+        setHasMore(false);
       }
     } catch (e) {
       console.error("Failed to load more messages:", e);
@@ -116,7 +117,6 @@ export const useChatHistory = (visibleSession: string | null) => {
   }, [
     isLoadingMore,
     hasMore,
-    offset,
     currentFlowId,
     visibleSession,
     sessionCacheKey,
