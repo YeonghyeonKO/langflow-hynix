@@ -195,9 +195,10 @@ export default function IOModal({
         id: currentFlowId,
         params: {
           session_id: visibleSession,
+          limit: 20,
         },
       },
-      { enabled: open },
+      { enabled: open && !!currentFlowId },
     );
 
   const chatValue = useUtilityStore((state) => state.chatValueStore);
