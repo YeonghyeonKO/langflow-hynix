@@ -17,7 +17,6 @@ qdrant_storage
 .vscode/settings.json
 .chroma
 .ruff_cache
-opendsstar_cache
 
 # PyCharm
 .idea/
@@ -297,4 +296,4 @@ tmp_toolguard/
 
 #whitesource
 whitesource/
-/.codex
+.omc/

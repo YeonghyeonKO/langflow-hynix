@@ -398,6 +398,8 @@ class BaseConfigResponse(BaseModel):
     # Mirrors ``LANGFLOW_AUTHZ_ENABLED``. EE/custom frontends gate the Access
     # Control settings entry on this flag; OSS UI ignores it until wired.
     authz_enabled: bool = False
+    agent_hub_url: str = ""
+    agent_builder_channel_url: str = ""
 
 
 class PublicConfigResponse(BaseConfigResponse):
@@ -421,6 +423,8 @@ class PublicConfigResponse(BaseConfigResponse):
         Returns:
             PublicConfigResponse: An instance populated with public-safe configuration values.
         """
+        import os
+
         return cls(
             feature_flags=FEATURE_FLAGS,
             max_file_size_upload=settings.max_file_size_upload,
@@ -431,6 +435,8 @@ class PublicConfigResponse(BaseConfigResponse):
             enable_extension_reload=settings.enable_extension_reload,
             allow_custom_components=settings.allow_custom_components,
             authz_enabled=bool(getattr(auth_settings, "AUTHZ_ENABLED", False)),
+            agent_hub_url=os.getenv("LANGFLOW_AGENT_HUB_URL", ""),
+            agent_builder_channel_url=os.getenv("LANGFLOW_AGENT_BUILDER_CHANNEL", ""),
         )
 
 
@@ -473,6 +479,8 @@ class ConfigResponse(BaseConfigResponse):
         Returns:
             ConfigResponse: An instance populated with configuration and feature flag values.
         """
+        import os
+
         from langflow.services.database.models.folder.constants import DEFAULT_FOLDER_NAME
 
         return cls(
@@ -503,6 +511,8 @@ class ConfigResponse(BaseConfigResponse):
             hide_starter_projects=settings.hide_starter_projects or settings.embedded_mode,
             mcp_servers_locked=settings.mcp_servers_locked,
             custom_component_admin_only=settings.custom_component_admin_only,
+            agent_hub_url=os.getenv("LANGFLOW_AGENT_HUB_URL", ""),
+            agent_builder_channel_url=os.getenv("LANGFLOW_AGENT_BUILDER_CHANNEL", ""),
         )
 
 

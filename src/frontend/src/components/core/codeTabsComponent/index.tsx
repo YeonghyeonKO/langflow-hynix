@@ -5,6 +5,7 @@ import {
   oneLight,
 } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { useDarkStore } from "@/stores/darkStore";
+import { copyToClipboard } from "@/utils/clipboardUtils";
 import IconComponent from "../../common/genericIconComponent";
 import { Button } from "../../ui/button";
 
@@ -22,12 +23,8 @@ export default function SimplifiedCodeTabComponent({
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const dark = useDarkStore((state) => state.dark);
 
-  const copyToClipboard = () => {
-    if (!navigator.clipboard || !navigator.clipboard.writeText) {
-      return;
-    }
-
-    navigator.clipboard.writeText(code).then(() => {
+  const handleCopy = () => {
+    copyToClipboard(code).then(() => {
       setIsCopied(true);
 
       setTimeout(() => {
@@ -50,7 +47,7 @@ export default function SimplifiedCodeTabComponent({
           size="icon"
           className="text-muted-foreground hover:bg-card"
           data-testid="copy-code-button"
-          onClick={copyToClipboard}
+          onClick={handleCopy}
         >
           {isCopied ? (
             <IconComponent name="Check" className="h-4 w-4" />

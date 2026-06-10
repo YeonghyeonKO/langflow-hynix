@@ -287,8 +287,16 @@ export default function ModelInputComponent({
             string,
             unknown
           >;
+          // vLLM models don't carry model_type metadata — infer from provider name.
+          const providerLower = providerName.toLowerCase();
+          const isVllm = providerLower === "vllm";
+          const isVllmEmbeddings = providerLower === "vllm embeddings";
+          if (isVllm && modelType !== "llm") continue;
+          if (isVllmEmbeddings && modelType !== "embeddings") continue;
           const modelMetadataType = modelMetadata.model_type;
           if (
+            !isVllm &&
+            !isVllmEmbeddings &&
             typeof modelMetadataType === "string" &&
             modelMetadataType !== modelType
           ) {

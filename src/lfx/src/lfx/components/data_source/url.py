@@ -1,5 +1,6 @@
 import importlib.util
 import io
+import os
 import re
 from urllib.parse import urljoin, urlparse
 
@@ -179,6 +180,17 @@ class URLComponent(Component):
             display_name="Autoset Encoding",
             info="If enabled, automatically sets the encoding of the request.",
             value=True,
+            required=False,
+            advanced=True,
+        ),
+        BoolInput(
+            name="verify_ssl",
+            display_name="Verify SSL",
+            info=(
+                "If disabled, skips SSL certificate verification. Useful for air-gapped or internal environments. "
+                "Can also be set globally via LANGFLOW_URL_VERIFY_SSL=false environment variable."
+            ),
+            value=os.environ.get("LANGFLOW_URL_VERIFY_SSL", "true").lower() != "false",
             required=False,
             advanced=True,
         ),
@@ -451,6 +463,19 @@ class URLComponent(Component):
         Raises:
             ValueError: If no valid URLs are provided or if there's an error loading documents
         """
+        # Disable SSL verification if configured (component attribute or env var)
+        verify_ssl = getattr(self, "verify_ssl", True)
+        if os.environ.get("LANGFLOW_URL_VERIFY_SSL", "true").lower() == "false":
+            verify_ssl = False
+        original_env = os.environ.get("CURL_CA_BUNDLE")
+        if not verify_ssl:
+            # RecursiveUrlLoader uses requests/aiohttp internally;
+            # disable SSL verification globally for this call
+            import urllib3
+
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            os.environ["CURL_CA_BUNDLE"] = ""
+
         try:
             # Validate all URLs and get their validated IPs for DNS pinning
             validated_urls = []
@@ -539,6 +564,13 @@ class URLComponent(Component):
             msg = f"Error loading documents: {error_msg}"
             logger.exception(msg)
             raise ValueError(msg) from e
+        finally:
+            # Restore SSL environment
+            if not verify_ssl:
+                if original_env is None:
+                    os.environ.pop("CURL_CA_BUNDLE", None)
+                else:
+                    os.environ["CURL_CA_BUNDLE"] = original_env
 
     async def fetch_content(self) -> DataFrame:
         """Convert the documents to a DataFrame."""

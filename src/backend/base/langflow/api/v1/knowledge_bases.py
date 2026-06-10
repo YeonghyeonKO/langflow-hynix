@@ -897,7 +897,8 @@ async def preview_chunks(
             try:
                 file_content = await uploaded_file.read()
                 file_name = uploaded_file.filename or "unknown"
-                text_content = extract_text_from_bytes(file_name, file_content)
+                employee_id = current_user.username if current_user else None
+                text_content = extract_text_from_bytes(file_name, file_content, employee_id=employee_id)
 
                 if not text_content.strip():
                     file_previews.append(

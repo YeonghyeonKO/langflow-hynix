@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import useHandleOnNewValue from "@/CustomNodes/hooks/use-handle-new-value";
+import { copyToClipboard } from "@/utils/clipboardUtils";
 import useHandleNodeClass from "@/CustomNodes/hooks/use-handle-node-class";
 import ForwardedIconComponent from "@/components/common/genericIconComponent";
 import ShadTooltip from "@/components/common/shadTooltipComponent";
@@ -48,9 +49,9 @@ export default function InspectionPanelHeader({
   const setSuccessData = useAlertStore((state) => state.setSuccessData);
 
   const handleCopyId = useCallback(() => {
-    navigator.clipboard.writeText(data.id);
+    copyToClipboard(data.id);
     setSuccessData({ title: t("success.componentIdCopied") });
-  }, [data.id, setSuccessData]);
+  }, [data.id, setSuccessData, t]);
 
   const handleOpenCode = useCallback(() => {
     if (hasCode) {

@@ -193,7 +193,13 @@ def get_all_variables_for_provider(user_id: UUID | str | None, provider: str) ->
                     value = secret_value_to_str(value, strip=True)
                     if value:
                         values[var_key] = value
-                except (ValueError, Exception):  # noqa: BLE001
+                    else:
+                        logger.debug("get_all_variables_for_provider: %s returned empty/None", var_key)
+                except (ValueError, Exception) as e:  # noqa: BLE001
+                    logger.debug(
+                        "get_all_variables_for_provider: %s lookup failed: %s(%s)",
+                        var_key, type(e).__name__, e,
+                    )
                     # Variable not found - check environment, unless the request disables
                     # env fallback (keeps served flows isolated from process-wide credentials).
                     if is_env_fallback_disabled():
@@ -499,6 +505,102 @@ def validate_model_provider_key(provider: str, variables: dict[str, str], model_
                 logger.warning(msg)
                 raise ValueError(msg) from e
 
+        elif provider == "vLLM":
+            import requests
+
+            base_url = variables.get("VLLM_API_BASE")
+            if not base_url:
+                msg = "Invalid vLLM API base URL"
+                logger.error(msg)
+                raise ValueError(msg)
+
+            base_url = base_url.rstrip("/")
+            models_url = f"{base_url}/models" if base_url.endswith("/v1") else f"{base_url}/v1/models"
+            headers = {}
+            api_key = variables.get("VLLM_API_KEY")
+            if api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
+
+            # Skip full API validation if API key is not available.
+            # This avoids a race condition when the frontend saves
+            # VLLM_API_BASE and VLLM_API_KEY in parallel — the base URL
+            # save may read the OLD key from DB before the key save commits.
+            if not api_key:
+                logger.info("vLLM validation: skipping API call (no API key available), url=%s", models_url)
+                return
+
+            logger.info(
+                "vLLM validation: url=%s, api_key_prefix=%s",
+                models_url,
+                api_key[:8] + "..." if len(api_key) > 8 else "***",
+            )
+
+            try:
+                response = requests.get(models_url, headers=headers, timeout=5, verify=False)
+                logger.info("vLLM validation response: status=%s", response.status_code)
+                if response.status_code in (401, 403):
+                    msg = (
+                        f"Authentication failed for vLLM server (status={response.status_code}). "
+                        f"URL: {models_url}. Check VLLM_API_KEY."
+                    )
+                    logger.error(msg)
+                    raise ValueError(msg)
+                response.raise_for_status()
+            except requests.ConnectionError as e:
+                msg = (
+                    f"Could not connect to vLLM server at {base_url}. "
+                    "Please check that the server is running and the URL is correct."
+                )
+                logger.error(msg)
+                raise ValueError(msg) from e
+            except requests.Timeout as e:
+                msg = (
+                    f"Connection to vLLM server at {base_url} timed out. "
+                    "Please check that the server is running and responsive."
+                )
+                logger.error(msg)
+                raise ValueError(msg) from e
+
+        elif provider == "vLLM Embeddings":
+            import requests
+
+            base_url = variables.get("VLLM_EMBEDDINGS_API_BASE")
+            if not base_url:
+                msg = "Invalid vLLM Embeddings API base URL"
+                logger.error(msg)
+                raise ValueError(msg)
+
+            # Validate URL format only — server may not be reachable at config time
+            # (e.g. running inside Docker where host network differs)
+            base_url = base_url.rstrip("/")
+            models_url = f"{base_url}/models" if base_url.endswith("/v1") else f"{base_url}/v1/models"
+            headers = {}
+            api_key = variables.get("VLLM_EMBEDDINGS_API_KEY")
+            if api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
+
+            try:
+                response = requests.get(models_url, headers=headers, timeout=5)
+                if response.status_code in (401, 403):
+                    msg = "Authentication failed for vLLM Embeddings server. Check VLLM_EMBEDDINGS_API_KEY."
+                    logger.error(msg)
+                    raise ValueError(msg)
+                response.raise_for_status()
+            except requests.ConnectionError as e:
+                msg = (
+                    f"Could not connect to vLLM Embeddings server at {base_url}. "
+                    "Please check that the server is running and the URL is correct."
+                )
+                logger.error(msg)
+                raise ValueError(msg) from e
+            except requests.Timeout as e:
+                msg = (
+                    f"Connection to vLLM Embeddings server at {base_url} timed out. "
+                    "Please check that the server is running and responsive."
+                )
+                logger.error(msg)
+                raise ValueError(msg) from e
+
         elif provider == "Ollama":
             import requests
 
@@ -547,6 +649,16 @@ def validate_model_provider_key(provider: str, variables: dict[str, str], model_
         # Rethrow specific Ollama errors with a user-facing message
         if provider == "Ollama":
             msg = "Invalid Ollama base URL"
+            logger.error(msg)
+            raise ValueError(msg) from e
+
+        if provider == "vLLM":
+            msg = f"Failed to validate vLLM server: {e}"
+            logger.error(msg)
+            raise ValueError(msg) from e
+
+        if provider == "vLLM Embeddings":
+            msg = f"Failed to validate vLLM Embeddings server: {e}"
             logger.error(msg)
             raise ValueError(msg) from e
 

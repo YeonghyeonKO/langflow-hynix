@@ -1,0 +1,83 @@
+{{- if .Values.nfsVolumes.flow.enabled }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ include "langflow.fullname" . }}-nfs-flow
+  labels:
+    {{- include "langflow.labels" . | nindent 4 }}
+spec:
+  capacity:
+    storage: {{ .Values.nfsVolumes.flow.storage | default "5Gi" }}
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  {{- if .Values.langflow.storageClass }}
+  storageClassName: {{ .Values.langflow.storageClass }}
+  {{- end }}
+  nfs:
+    server: {{ required "nfsVolumes.flow.server is required" .Values.nfsVolumes.flow.server }}
+    path: {{ required "nfsVolumes.flow.path is required" .Values.nfsVolumes.flow.path }}
+  {{- if .Values.nfsVolumes.flow.mountOptions }}
+  mountOptions:
+    {{- toYaml .Values.nfsVolumes.flow.mountOptions | nindent 4 }}
+  {{- end }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "langflow.fullname" . }}-nfs-flow
+  labels:
+    {{- include "langflow.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: {{ .Values.nfsVolumes.flow.storage | default "5Gi" }}
+  volumeName: {{ include "langflow.fullname" . }}-nfs-flow
+  {{- if .Values.langflow.storageClass }}
+  storageClassName: {{ .Values.langflow.storageClass }}
+  {{- end }}
+{{- end }}
+---
+{{- if .Values.nfsVolumes.component.enabled }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ include "langflow.fullname" . }}-nfs-component
+  labels:
+    {{- include "langflow.labels" . | nindent 4 }}
+spec:
+  capacity:
+    storage: {{ .Values.nfsVolumes.component.storage | default "5Gi" }}
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  {{- if .Values.langflow.storageClass }}
+  storageClassName: {{ .Values.langflow.storageClass }}
+  {{- end }}
+  nfs:
+    server: {{ required "nfsVolumes.component.server is required" .Values.nfsVolumes.component.server }}
+    path: {{ required "nfsVolumes.component.path is required" .Values.nfsVolumes.component.path }}
+  {{- if .Values.nfsVolumes.component.mountOptions }}
+  mountOptions:
+    {{- toYaml .Values.nfsVolumes.component.mountOptions | nindent 4 }}
+  {{- end }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "langflow.fullname" . }}-nfs-component
+  labels:
+    {{- include "langflow.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: {{ .Values.nfsVolumes.component.storage | default "5Gi" }}
+  volumeName: {{ include "langflow.fullname" . }}-nfs-component
+  {{- if .Values.langflow.storageClass }}
+  storageClassName: {{ .Values.langflow.storageClass }}
+  {{- end }}
+{{- end }}

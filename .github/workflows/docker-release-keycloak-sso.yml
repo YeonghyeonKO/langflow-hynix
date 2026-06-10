@@ -1,0 +1,204 @@
+name: Docker Release
+
+# v*-hynix* 태그를 push하면 자동으로 GitHub Release 생성 + Docker 이미지 3종 빌드/푸시
+# 사용법: git tag v1.9.0-hynix-rc0 && git push origin v1.9.0-hynix-rc0
+#
+# 생성되는 이미지:
+#   langflow-hynix:<tag>           — Backend (non-SSO)
+#   langflow-hynix:<tag-sso>       — Backend (SSO)   예: v1.9.0-hynix-sso-rc0
+#   langflow-hynix-frontend:<tag>  — Frontend (nginx)
+
+on:
+  push:
+    tags:
+      - "v*-hynix*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "빌드할 git 태그 (예: v1.9.0-hynix-rc0)"
+        required: true
+        type: string
+
+jobs:
+  prepare:
+    name: Resolve tags
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.name }}
+      sso_tag: ${{ steps.tag.outputs.sso_name }}
+      owner_lc: ${{ steps.tag.outputs.owner_lc }}
+    steps:
+      - name: Resolve tag name
+        id: tag
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          echo "name=${TAG}" >> $GITHUB_OUTPUT
+          # v1.9.0-hynix-rc0 → v1.9.0-hynix-sso-rc0
+          SSO_TAG=$(echo "$TAG" | sed 's/-\(rc[0-9]*\)$/-sso-\1/')
+          echo "sso_name=${SSO_TAG}" >> $GITHUB_OUTPUT
+          # Docker requires lowercase image names
+          echo "owner_lc=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
+  backend:
+    name: Backend (non-SSO)
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push (non-SSO)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/keycloak-sso.Dockerfile
+          build-args: INSTALL_SSO=false
+          push: true
+          tags: |
+            ghcr.io/${{ needs.prepare.outputs.owner_lc }}/langflow-hynix:${{ needs.prepare.outputs.tag }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/langflow-hynix:${{ needs.prepare.outputs.tag }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
+
+  backend-sso:
+    name: Backend (SSO)
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push (SSO)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/keycloak-sso.Dockerfile
+          build-args: INSTALL_SSO=true
+          push: true
+          tags: |
+            ghcr.io/${{ needs.prepare.outputs.owner_lc }}/langflow-hynix:${{ needs.prepare.outputs.sso_tag }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/langflow-hynix:${{ needs.prepare.outputs.sso_tag }}
+          cache-from: type=gha,scope=backend-sso
+          cache-to: type=gha,scope=backend-sso,mode=max
+
+  frontend:
+    name: Frontend
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push (Frontend)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/frontend/build_and_push_frontend.Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ needs.prepare.outputs.owner_lc }}/langflow-hynix-frontend:${{ needs.prepare.outputs.tag }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/langflow-hynix-frontend:${{ needs.prepare.outputs.tag }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max
+
+  release:
+    name: Create Release
+    needs: [prepare, backend, backend-sso, frontend]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ needs.prepare.outputs.tag }}
+          generateReleaseNotes: true
+          allowUpdates: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+            ## Docker Images
+
+            | 이미지 | 용도 |
+            |--------|------|
+            | `langflow-hynix:${{ needs.prepare.outputs.tag }}` | Backend (non-SSO) |
+            | `langflow-hynix:${{ needs.prepare.outputs.sso_tag }}` | Backend (SSO) |
+            | `langflow-hynix-frontend:${{ needs.prepare.outputs.tag }}` | Frontend (nginx) |
+
+            ### Pull (Docker Hub)
+            ```bash
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/langflow-hynix:${{ needs.prepare.outputs.tag }}
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/langflow-hynix:${{ needs.prepare.outputs.sso_tag }}
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/langflow-hynix-frontend:${{ needs.prepare.outputs.tag }}
+            ```
+
+            ### Pull (ghcr.io)
+            ```bash
+            docker pull ghcr.io/${{ needs.prepare.outputs.owner_lc }}/langflow-hynix:${{ needs.prepare.outputs.tag }}
+            docker pull ghcr.io/${{ needs.prepare.outputs.owner_lc }}/langflow-hynix:${{ needs.prepare.outputs.sso_tag }}
+            docker pull ghcr.io/${{ needs.prepare.outputs.owner_lc }}/langflow-hynix-frontend:${{ needs.prepare.outputs.tag }}
+            ```
+
+            ### 실행 예시 (SSO)
+            ```bash
+            docker run -p 7860:7860 \
+              -e KEYCLOAK_ENABLED=true \
+              -e KEYCLOAK_SERVER_URL=https://keycloak.company.com \
+              -e KEYCLOAK_REALM=company \
+              -e KEYCLOAK_CLIENT_ID=langflow \
+              -e KEYCLOAK_CLIENT_SECRET=<secret> \
+              -e KEYCLOAK_REDIRECT_URI=http://localhost:7860/api/v1/keycloak/callback \
+              -e LANGFLOW_SECRET_KEY=<random-32-chars> \
+              ${{ secrets.DOCKERHUB_USERNAME }}/langflow-hynix:${{ needs.prepare.outputs.sso_tag }}
+            ```

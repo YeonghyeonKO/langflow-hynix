@@ -68,4 +68,8 @@ export type UtilityStoreType = {
   setMcpServersLocked: (mcpServersLocked: boolean) => void;
   customComponentAdminOnly: boolean;
   setCustomComponentAdminOnly: (customComponentAdminOnly: boolean) => void;
+  agentHubUrl: string;
+  setAgentHubUrl: (agentHubUrl: string) => void;
+  agentBuilderChannelUrl: string;
+  setAgentBuilderChannelUrl: (agentBuilderChannelUrl: string) => void;
 };

@@ -1,6 +1,7 @@
 import Convert from "ansi-to-html";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { copyToClipboard } from "@/utils/clipboardUtils";
 import MessageMetadata from "@/components/common/messageMetadataComponent";
 import { ContentBlockDisplay } from "@/components/core/chatComponents/ContentBlockDisplay";
 import { useUpdateMessage } from "@/controllers/API/queries/messages";
@@ -425,7 +426,7 @@ export default function ChatMessage({
               <div>
                 <EditMessageButton
                   onCopy={() => {
-                    navigator.clipboard.writeText(chatMessage);
+                    copyToClipboard(chatMessage);
                   }}
                   onEdit={
                     playgroundPage ? undefined : () => setEditMessage(true)

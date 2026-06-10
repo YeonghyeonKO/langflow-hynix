@@ -713,6 +713,7 @@ class KBIngestionHelper:
             )
 
             job_id_str = str(task_job_id)
+            employee_id = current_user.username if current_user else None
 
             async for item in source.list_items():
                 if await KBIngestionHelper.is_job_cancelled(job_service, task_job_id):
@@ -736,7 +737,7 @@ class KBIngestionHelper:
                     continue
 
                 size_bytes = len(content_obj.raw_bytes)
-                text = extract_text_from_bytes(content_obj.file_name, content_obj.raw_bytes)
+                text = extract_text_from_bytes(content_obj.file_name, content_obj.raw_bytes, employee_id=employee_id)
                 if not text.strip():
                     summary.record_item(
                         IngestionItemResult(

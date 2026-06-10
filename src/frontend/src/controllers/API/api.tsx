@@ -54,6 +54,7 @@ export function isAuthMaintenanceURL(url: string | undefined): boolean {
 
 function ApiInterceptor() {
   const autoLogin = useAuthStore((state) => state.autoLogin);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const setErrorData = useAlertStore((state) => state.setErrorData);
   const accessToken = useAuthStore((state) => state.accessToken);
   const authenticationErrorCount = useAuthStore(
@@ -98,8 +99,9 @@ function ApiInterceptor() {
           error?.response?.status === 403 || error?.response?.status === 401;
 
         const shouldRetryRefresh =
-          (isAuthenticationError && !IS_AUTO_LOGIN) ||
-          (isAuthenticationError && !autoLogin && autoLogin !== undefined);
+          isAuthenticated &&
+          ((isAuthenticationError && !IS_AUTO_LOGIN) ||
+            (isAuthenticationError && !autoLogin && autoLogin !== undefined));
 
         if (shouldRetryRefresh) {
           if (
@@ -228,7 +230,7 @@ function ApiInterceptor() {
       api.interceptors.request.eject(requestInterceptor);
       unregister();
     };
-  }, [accessToken, setErrorData, customHeaders, autoLogin]);
+  }, [accessToken, setErrorData, customHeaders, autoLogin, isAuthenticated]);
 
   function checkErrorCount(): boolean {
     if (isLoginPage) return false;

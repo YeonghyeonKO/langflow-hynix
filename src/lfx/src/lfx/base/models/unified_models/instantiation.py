@@ -6,6 +6,7 @@ import os
 from typing import TYPE_CHECKING, Any
 
 from lfx.base.models.model_utils import _to_str
+from lfx.log.logger import logger
 from lfx.services.variable.request_scope import is_env_fallback_disabled
 
 from .class_registry import EMBEDDING_PARAM_MAPPINGS, EMBEDDING_PROVIDER_CLASS_MAPPING
@@ -38,6 +39,7 @@ def get_llm(
     watsonx_url=None,
     watsonx_project_id=None,
     ollama_base_url=None,
+    vllm_base_url=None,
 ) -> Any:
     # Resolve helpers via package namespace so tests patching
     # lfx.base.models.unified_models.<name> keep working.
@@ -45,6 +47,7 @@ def get_llm(
 
     # Coerce provider-specific string params (Message/Data may leak through StrInput)
     ollama_base_url = _to_str(ollama_base_url)
+    vllm_base_url = _to_str(vllm_base_url)
     watsonx_url = _to_str(watsonx_url)
     watsonx_project_id = _to_str(watsonx_project_id)
 
@@ -70,6 +73,7 @@ def get_llm(
     model_name = model.get("name")
     provider = model.get("provider")
     metadata = model.get("metadata", {})
+    logger.info("get_llm called: provider=%s, model_name=%s, model_class=%s", provider, model_name, metadata.get("model_class"))
 
     # Get model class and parameter names from metadata
     api_key_param = metadata.get("api_key_param", "api_key")
@@ -82,8 +86,8 @@ def get_llm(
     # Get API key from user input or global variables
     api_key = unified_models_module.get_api_key_for_provider(user_id, provider, api_key)
 
-    # Validate API key (Ollama doesn't require one)
-    if not api_key and provider != "Ollama":
+    # Validate API key (Ollama / vLLM don't require one)
+    if not api_key and provider not in {"Ollama", "vLLM", "vLLM Embeddings"}:
         # Bug 2 [P1] — Defensive guard: provider arriving as empty / None /
         # literal "Unknown" produces a nonsense error message (the worst
         # case being ``Unknown API key is required when using Unknown
@@ -101,6 +105,7 @@ def get_llm(
                 "so the component knows which provider's API key to use."
             )
             raise ValueError(msg)
+
 
         # Get the correct variable name from the provider variable mapping
         provider_variable_map = unified_models_module.get_model_provider_variable_mapping()
@@ -153,10 +158,13 @@ def get_llm(
         temperature = None
 
     # Build kwargs dynamically
+    # vLLM doesn't require an API key but ChatOpenAI raises if none is
+    # provided and OPENAI_API_KEY is unset. Pass a dummy value.
+    resolved_api_key = api_key or ("dummy" if provider in {"vLLM", "vLLM Embeddings"} else api_key)
     kwargs = {
         model_name_param: model_name,
         "streaming": stream,
-        api_key_param: api_key,
+        api_key_param: resolved_api_key,
     }
 
     if temperature is not None:
@@ -259,9 +267,63 @@ def get_llm(
         if default_headers:
             kwargs["default_headers"] = default_headers
 
+    elif provider == "vLLM":
+        # For vLLM, handle custom base_url with component > database > env var fallback
+        base_url_param = metadata.get("base_url_param", "base_url")
+
+        # Get all provider variables from database
+        provider_vars = unified_models_module.get_all_variables_for_provider(user_id, provider)
+
+        # Priority: component value > database value > env var
+        vllm_base_url_value = (
+            vllm_base_url if vllm_base_url else provider_vars.get("VLLM_API_BASE") or os.environ.get("VLLM_API_BASE")
+        )
+        if vllm_base_url_value:
+            # Ensure the URL ends with /v1 for OpenAI-compatible API
+            vllm_base_url_value = vllm_base_url_value.rstrip("/")
+            if not vllm_base_url_value.endswith("/v1"):
+                vllm_base_url_value = f"{vllm_base_url_value}/v1"
+            kwargs[base_url_param] = vllm_base_url_value
+        else:
+            msg = (
+                "vLLM requires a base URL. Please provide it in the component, "
+                "configure it globally as VLLM_API_BASE, or set the VLLM_API_BASE environment variable."
+            )
+            raise ValueError(msg)
+
+        # Resolve api_key for vLLM: check multiple sources to avoid stale
+        # keys from a previously selected provider.
+        # Priority: Model Provider vars > Global Variables > env var > "dummy"
+        vllm_api_key = provider_vars.get("VLLM_API_KEY") or os.environ.get("VLLM_API_KEY")
+        api_key_source = "provider_vars" if provider_vars.get("VLLM_API_KEY") else "env" if os.environ.get("VLLM_API_KEY") else None
+        if not vllm_api_key:
+            # Also check Global Variables (user may have set VLLM_API_KEY there
+            # instead of in Model Providers settings)
+            logger.info("vLLM: VLLM_API_KEY not in provider_vars/env, trying Global Variables (user_id=%s)", user_id)
+            vllm_api_key = unified_models_module.get_api_key_for_provider(user_id, provider, "VLLM_API_KEY")
+            logger.info("vLLM: Global Variables lookup result: %s", "found" if vllm_api_key else "not found")
+            if vllm_api_key:
+                api_key_source = "global_vars"
+        kwargs[api_key_param] = vllm_api_key or "dummy"
+        logger.info(
+            "vLLM model instantiation: model=%s, base_url=%s, api_key_source=%s, provider_vars_keys=%s",
+            model_name, vllm_base_url_value,
+            api_key_source or "dummy",
+            list(provider_vars.keys()),
+        )
+
+    if provider == "vLLM":
+        # Log full kwargs for debugging (mask api_key)
+        debug_kwargs = dict(kwargs)
+        ak = str(debug_kwargs.get(api_key_param, ""))
+        debug_kwargs[api_key_param] = f"{ak[:4]}***{ak[-4:]}" if len(ak) > 8 else "***"
+        logger.info("vLLM ChatOpenAI kwargs: %s, class=%s", debug_kwargs, model_class_name)
+
     try:
         return model_class(**kwargs)
     except Exception as e:
+        if provider == "vLLM":
+            logger.error("vLLM model instantiation failed: %s", e)
         # If instantiation fails and it's WatsonX, provide additional context
         if provider in {"IBM WatsonX", "IBM watsonx.ai"} and ("url" in str(e).lower() or "project" in str(e).lower()):
             msg = (
@@ -329,7 +391,7 @@ def get_embeddings(
 
     # --- resolve API key -----------------------------------------------------
     api_key = unified_models_module.get_api_key_for_provider(user_id, provider, api_key)
-    if not api_key and provider != "Ollama":
+    if not api_key and provider not in {"Ollama", "vLLM", "vLLM Embeddings"}:
         provider_variable_map = unified_models_module.get_model_provider_variable_mapping()
         variable_name = provider_variable_map.get(provider, f"{provider.upper().replace(' ', '_')}_API_KEY")
         msg = (
@@ -375,8 +437,14 @@ def get_embeddings(
         kwargs[param_mapping["model_id"]] = model_name
 
     # API key
-    if "api_key" in param_mapping and api_key:
-        kwargs[param_mapping["api_key"]] = api_key
+    # vLLM / vLLM Embeddings don't require an API key but OpenAIEmbeddings
+    # raises if none is provided and OPENAI_API_KEY is unset.
+    # Pass a dummy value so the client constructor succeeds.
+    if "api_key" in param_mapping:
+        if api_key:
+            kwargs[param_mapping["api_key"]] = api_key
+        elif provider in {"vLLM", "vLLM Embeddings"}:
+            kwargs[param_mapping["api_key"]] = "dummy"
 
     # Optional parameters - only add when both a value is supplied *and* the
     # provider's param_mapping declares the corresponding key.
@@ -447,6 +515,27 @@ def get_embeddings(
             or "http://localhost:11434"
         )
         kwargs[param_mapping["base_url"]] = base_url_value
+
+    # vLLM / vLLM Embeddings: disable tiktoken tokenization to avoid
+    # downloading encoding files (fails in air-gapped environments).
+    # vLLM handles its own context limits server-side.
+    if provider in {"vLLM", "vLLM Embeddings"}:
+        kwargs["tiktoken_enabled"] = False
+        kwargs["check_embedding_ctx_length"] = False
+
+    # vLLM Embeddings: resolve base_url from stored variable
+    if provider == "vLLM Embeddings" and "api_base" in param_mapping:
+        provider_vars = unified_models_module.get_all_variables_for_provider(user_id, provider)
+        base_url_value = (
+            _to_str(api_base)
+            or provider_vars.get("VLLM_EMBEDDINGS_API_BASE")
+            or os.environ.get("VLLM_EMBEDDINGS_API_BASE")
+        )
+        if base_url_value:
+            base_url_value = base_url_value.rstrip("/")
+            if not base_url_value.endswith("/v1"):
+                base_url_value = f"{base_url_value}/v1"
+            kwargs[param_mapping["api_base"]] = base_url_value
 
     # Add optional parameters if they have values and are mapped
     for param_name, param_value in optional_params.items():

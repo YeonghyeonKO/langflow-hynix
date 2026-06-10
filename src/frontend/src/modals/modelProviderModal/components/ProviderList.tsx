@@ -8,6 +8,9 @@ import { Provider } from "./types";
 // Supported model types for filtering providers
 type ModelType = "llm" | "embeddings" | "all";
 
+// Hynix: Only show these providers in the UI
+const ALLOWED_PROVIDERS = ["vllm", "vllm embeddings", "ollama"];
+
 export interface ProviderListProps {
   modelType: ModelType;
   onProviderSelect?: (provider: Provider) => void;
@@ -37,14 +40,21 @@ const ProviderList = ({
       providerName.toLowerCase().includes(trimmedQuery);
 
     return rawProviders
+      .filter((provider) =>
+        ALLOWED_PROVIDERS.includes(provider?.provider?.toLowerCase() ?? ""),
+      )
       .filter((provider) => matchesQuery(provider.provider))
       .map((provider) => {
+        const providerLower = provider?.provider?.toLowerCase() ?? "";
+        const isVllm = providerLower === "vllm";
+        const isVllmEmbeddings = providerLower === "vllm embeddings";
         const matchingModels =
-          provider?.models?.filter((model) =>
-            modelType === "all"
-              ? true
-              : model?.metadata?.model_type === modelType,
-          ) || [];
+          provider?.models?.filter((model) => {
+            if (modelType === "all") return true;
+            if (isVllm) return modelType === "llm";
+            if (isVllmEmbeddings) return modelType === "embeddings";
+            return model?.metadata?.model_type === modelType;
+          }) || [];
 
         return {
           provider: provider.provider,

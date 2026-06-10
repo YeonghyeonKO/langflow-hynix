@@ -1,0 +1,128 @@
+# Multi-instance Langflow + Keycloak + Mock HCP for local SSO testing
+#
+# Usage:
+#   docker compose -f docker/keycloak-sso.docker-compose.yml up
+#
+# Access:
+#   http://localhost:9000          → Keycloak Admin Console (admin / admin)
+#   http://localhost:7860          → Langflow project-a
+#   http://localhost:7861          → Langflow project-b
+#
+# Keycloak realm "company" is auto-imported on first start with:
+#   - Clients: langflow-project-a, langflow-project-b
+#   - Users: EMP001~EMP010 (password = pass001~pass010)
+#
+# HCP authorization (mock):
+#   project-a allowed: EMP001 (manager), EMP002 (approver), EMP003~005 (dev)
+#   project-b allowed: EMP001 (manager), EMP002 (approver), EMP006~008 (dev)
+#   EMP009, EMP010: no project access
+
+services:
+
+  # ── Keycloak (real) ────────────────────────────────────────────────────
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.1
+    command: start-dev --import-realm
+    environment:
+      KC_HTTP_PORT: "9000"
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./keycloak/realm-company.json:/opt/keycloak/data/import/realm-company.json:ro
+      - keycloak-data:/opt/keycloak/data
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  # ── Mock HCP roles API ─────────────────────────────────────────────────
+  mock-hcp:
+    image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+    working_dir: /app
+    volumes:
+      - ../scripts/mock_hcp_server.py:/app/mock_hcp_server.py:ro
+    command: >
+      bash -c "
+        uv pip install --system fastapi uvicorn[standard] &&
+        python mock_hcp_server.py
+      "
+    ports:
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9001/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ── project-a instance ────────────────────────────────────────────────
+  langflow-project-a:
+    build:
+      context: ..
+      dockerfile: docker/keycloak-sso.Dockerfile
+    ports:
+      - "7860:7860"
+    environment:
+      KEYCLOAK_ENABLED: "true"
+      KEYCLOAK_SERVER_URL: "http://keycloak:9000"
+      KEYCLOAK_EXTERNAL_SERVER_URL: "http://localhost:9000"
+      KEYCLOAK_REALM: "company"
+      KEYCLOAK_CLIENT_ID: "langflow-project-a"
+      KEYCLOAK_CLIENT_SECRET: "secret-project-a"
+      KEYCLOAK_REDIRECT_URI: "http://localhost:7860/api/v1/keycloak/callback"
+      KEYCLOAK_SHARED_USERNAME: "langflow-shared-project-a"
+      KEYCLOAK_HCP_API_URL: "http://mock-hcp:9001/v1/projects/project-a/roles"
+      KEYCLOAK_EMPLOYEE_CLAIM: "preferred_username"
+      LANGFLOW_SECRET_KEY: "dev-secret-project-a-000000000000"
+      LANGFLOW_DATABASE_URL: "sqlite+aiosqlite:////app/data/langflow_project_a.db"
+      LANGFLOW_REFRESH_SECURE: "false"
+      LANGFLOW_REFRESH_SAME_SITE: "lax"
+      LANGFLOW_ACCESS_SECURE: "false"
+      LANGFLOW_ACCESS_SAME_SITE: "lax"
+    volumes:
+      - langflow-project-a-data:/app/data
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      mock-hcp:
+        condition: service_healthy
+
+  # ── project-b instance ────────────────────────────────────────────────
+  langflow-project-b:
+    build:
+      context: ..
+      dockerfile: docker/keycloak-sso.Dockerfile
+    ports:
+      - "7861:7860"
+    environment:
+      KEYCLOAK_ENABLED: "true"
+      KEYCLOAK_SERVER_URL: "http://keycloak:9000"
+      KEYCLOAK_EXTERNAL_SERVER_URL: "http://localhost:9000"
+      KEYCLOAK_REALM: "company"
+      KEYCLOAK_CLIENT_ID: "langflow-project-b"
+      KEYCLOAK_CLIENT_SECRET: "secret-project-b"
+      KEYCLOAK_REDIRECT_URI: "http://localhost:7861/api/v1/keycloak/callback"
+      KEYCLOAK_SHARED_USERNAME: "langflow-shared-project-b"
+      KEYCLOAK_HCP_API_URL: "http://mock-hcp:9001/v1/projects/project-b/roles"
+      KEYCLOAK_EMPLOYEE_CLAIM: "preferred_username"
+      LANGFLOW_SECRET_KEY: "dev-secret-project-b-000000000000"
+      LANGFLOW_DATABASE_URL: "sqlite+aiosqlite:////app/data/langflow_project_b.db"
+      LANGFLOW_REFRESH_SECURE: "false"
+      LANGFLOW_REFRESH_SAME_SITE: "lax"
+      LANGFLOW_ACCESS_SECURE: "false"
+      LANGFLOW_ACCESS_SAME_SITE: "lax"
+    volumes:
+      - langflow-project-b-data:/app/data
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      mock-hcp:
+        condition: service_healthy
+
+volumes:
+  keycloak-data:
+  langflow-project-a-data:
+  langflow-project-b-data:

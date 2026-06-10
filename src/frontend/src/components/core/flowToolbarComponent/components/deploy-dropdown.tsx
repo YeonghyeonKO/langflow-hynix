@@ -112,14 +112,7 @@ export default function PublishDropdown({
           align="end"
           className="w-full min-w-[275px]"
         >
-          <DropdownMenuItem
-            className="deploy-dropdown-item group"
-            onClick={() => setOpenApiModal(true)}
-            data-testid="api-access-item"
-          >
-            <IconComponent name="Code2" className={`icon-size mr-2`} />
-            <span>{t("misc.apiAccess")}</span>
-          </DropdownMenuItem>
+          {/* API access hidden for internal deployment */}
           <DropdownMenuItem
             className="deploy-dropdown-item group"
             onClick={() => setOpenExportModal(true)}
@@ -127,24 +120,7 @@ export default function PublishDropdown({
             <IconComponent name="Download" className={`icon-size mr-2`} />
             <span>{t("misc.export")}</span>
           </DropdownMenuItem>
-          <CustomLink
-            className={cn("flex-1")}
-            to={`/mcp/folder/${folderId}`}
-            target={customMcpOpen()}
-          >
-            <DropdownMenuItem
-              className="deploy-dropdown-item group"
-              onClick={() => {}}
-              data-testid="mcp-server-item"
-            >
-              <IconComponent name="Mcp" className={`icon-size mr-2`} />
-              <span>{t("misc.mcpServer")}</span>
-              <IconComponent
-                name="ExternalLink"
-                className={`icon-size ml-auto hidden group-hover:block`}
-              />
-            </DropdownMenuItem>
-          </CustomLink>
+          {/* MCP Server hidden for internal deployment */}
           {ENABLE_WIDGET && (
             <DropdownMenuItem
               onClick={() => setOpenEmbedModal(true)}
@@ -155,65 +131,7 @@ export default function PublishDropdown({
             </DropdownMenuItem>
           )}
 
-          {ENABLE_PUBLISH && (
-            <DropdownMenuItem
-              className="deploy-dropdown-item group"
-              disabled={!hasIO}
-              onClick={() => {}}
-              data-testid="shareable-playground"
-            >
-              <div className="flex w-full items-center justify-between">
-                <div className="flex items-center">
-                  <ShadTooltipComponent
-                    styleClasses="truncate"
-                    side="left"
-                    content={
-                      hasIO
-                        ? isPublished
-                          ? encodeURI(`${domain}/playground/${flowId}`)
-                          : t("misc.activateToShare")
-                        : t("misc.addChatInputOutput")
-                    }
-                  >
-                    <div className="flex items-center">
-                      <IconComponent
-                        name="Globe"
-                        className={cn(
-                          `icon-size mr-2`,
-                          !isPublished && "opacity-50",
-                        )}
-                      />
-
-                      {isPublished ? (
-                        <CustomLink
-                          className="flex-1"
-                          to={`/playground/${flowId}`}
-                          target="_blank"
-                        >
-                          <span>{t("misc.shareablePlayground")}</span>
-                        </CustomLink>
-                      ) : (
-                        <span className={cn(!isPublished && "opacity-50")}>
-                          {t("misc.shareablePlayground")}
-                        </span>
-                      )}
-                    </div>
-                  </ShadTooltipComponent>
-                </div>
-                <Switch
-                  data-testid="publish-switch"
-                  className="scale-[85%]"
-                  checked={isPublished}
-                  disabled={!hasIO}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handlePublishedSwitch(isPublished);
-                  }}
-                />
-              </div>
-            </DropdownMenuItem>
-          )}
+          {/* Shareable Playground hidden for internal deployment */}
         </DropdownMenuContent>
       </DropdownMenu>
       <ApiModal open={openApiModal} setOpen={setOpenApiModal}>
