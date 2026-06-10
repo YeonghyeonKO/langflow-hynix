@@ -32,7 +32,7 @@ export const markdownSanitizeSchema: Schema = {
   // Remove dangerous protocols
   protocols: {
     href: ["http", "https", "mailto"],
-    src: ["http", "https"], // Used by img, video, audio
+    src: ["http", "https", "data"], // Used by img, video, audio; data: allows base64 images
   },
   // Strip dangerous tags completely
   strip: ["script", "style"],
