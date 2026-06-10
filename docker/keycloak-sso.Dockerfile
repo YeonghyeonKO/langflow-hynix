@@ -36,14 +36,14 @@ RUN apt-get update \
         git \
         curl \
         npm \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Python dependencies (lockfile-driven, cached layer) ──────────────────────
 COPY ./uv.lock ./README.md ./pyproject.toml /app/
-COPY ./src/backend/base/README.md ./src/backend/base/uv.lock ./src/backend/base/pyproject.toml /app/src/backend/base/
+COPY ./src/backend/base/README.md ./src/backend/base/pyproject.toml /app/src/backend/base/
 COPY ./src/lfx/README.md ./src/lfx/pyproject.toml /app/src/lfx/
 COPY ./src/sdk/README.md ./src/sdk/pyproject.toml /app/src/sdk/
 
