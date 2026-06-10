@@ -227,7 +227,7 @@ async def get_messages(
     sender: Annotated[str | None, Query()] = None,
     sender_name: Annotated[str | None, Query()] = None,
     order_by: Annotated[str | None, Query()] = "timestamp",
-    limit: Annotated[int | None, Query(ge=1)] = 20,
+    limit: Annotated[int | None, Query(ge=0)] = None,
     offset: Annotated[int | None, Query(ge=0)] = None,
 ) -> list[MessageResponse]:
     try:
@@ -257,7 +257,7 @@ async def get_messages(
         if sender_name:
             stmt = stmt.where(MessageTable.sender_name == sender_name)
         if order_by:
-            order_col = getattr(MessageTable, order_by).desc()
+            order_col = getattr(MessageTable, order_by).asc()
             stmt = stmt.order_by(order_col)
         if limit:
             stmt = stmt.limit(limit)
