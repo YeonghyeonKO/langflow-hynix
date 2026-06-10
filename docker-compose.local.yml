@@ -1,6 +1,6 @@
 services:
   langflow:
-    image: dk02315/langflow-hynix:v1.9.5-hynix-sso-rc10
+    image: dk02315/langflow-hynix:v1.9.5-hynix-sso-rc11
     ports:
       - "7860:7860"
     environment:
