@@ -289,7 +289,7 @@ const ModelSelection = ({
   };
 
   const isOllama = providerName?.toLowerCase() === "ollama";
-  const _isVllm =
+  const isVllm =
     providerName?.toLowerCase() === "vllm" ||
     providerName?.toLowerCase() === "vllm embeddings";
   // Use the unfiltered availableModels for the empty-state check so an
