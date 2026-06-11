@@ -363,6 +363,22 @@ const ModelSelection = ({
             {t("modelProviders.checkOllamaLibrary")}
           </a>
         </div>
+      ) : isVllm && noModelsAvailable ? (
+        <div className="flex flex-col items-center justify-center p-8 text-center border border-dashed rounded-lg bg-muted/30">
+          <ForwardedIconComponent
+            name="Info"
+            className="w-10 h-10 mb-4 text-muted-foreground"
+          />
+          <h3 className="mb-2 text-sm font-semibold text-foreground">
+            {t("modelProviders.noModelsAvailable")}
+          </h3>
+          <p className="max-w-[300px] text-xs text-muted-foreground leading-relaxed">
+            {t("modelProviders.vllmNoModels", {
+              defaultValue:
+                "Configure the vLLM endpoint URL above to discover available models.",
+            })}
+          </p>
+        </div>
       ) : isVllm ? (
         renderModelSection("Available Models", availableModels, "available")
       ) : (

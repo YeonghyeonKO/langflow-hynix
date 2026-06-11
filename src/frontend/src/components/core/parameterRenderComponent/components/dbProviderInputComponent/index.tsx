@@ -105,9 +105,17 @@ export function DBProviderInput({
   const selectedProvider = getDBProviderOption(value);
   const selectedIsConfigured = isDBProviderConfigured(value, globalVariables);
 
+  const HIDDEN_DB_PROVIDERS = new Set<DBProviderId>([
+    "chroma_cloud",
+    "astra",
+    "mongodb",
+  ]);
+
   const selectableOptions = useMemo(
     () =>
-      DB_PROVIDER_OPTIONS.map((provider) => ({
+      DB_PROVIDER_OPTIONS.filter(
+        (provider) => !HIDDEN_DB_PROVIDERS.has(provider.id),
+      ).map((provider) => ({
         provider,
         configured:
           provider.status === "available"

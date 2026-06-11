@@ -3306,7 +3306,7 @@
   "is_component": false,
   "last_tested_version": "1.9.0",
   "locked": false,
-  "name": "사내 문서 검색",
+  "name": "Vector Store RAG",
   "tags": [
     "openai",
     "knowledge-base",

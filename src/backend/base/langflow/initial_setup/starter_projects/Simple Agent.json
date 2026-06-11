@@ -1935,7 +1935,7 @@
   "id": "5ead1bd5-bd5a-4b40-a0bb-20c15a72f561",
   "is_component": false,
   "last_tested_version": "1.8.0",
-  "name": "데이터 분석 에이전트",
+  "name": "Simple Agent",
   "tags": [
     "assistants",
     "agents"

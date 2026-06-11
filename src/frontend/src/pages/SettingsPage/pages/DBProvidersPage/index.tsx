@@ -409,7 +409,12 @@ export default function DBProvidersPage() {
             selectedProvider ? "w-1/3 border-r" : "w-full",
           )}
         >
-          {DB_PROVIDER_OPTIONS.map((provider) => (
+          {DB_PROVIDER_OPTIONS.filter(
+            (p) =>
+              !new Set<DBProviderId>(["chroma_cloud", "astra", "mongodb"]).has(
+                p.id,
+              ),
+          ).map((provider) => (
             <ProviderListItem
               key={provider.id}
               provider={provider}

@@ -2060,5 +2060,11 @@
   "flow.defaultDescription.57": "Beyond Text Generation - Unleashing Business Opportunities.",
   "flow.defaultDescription.58": "Unlock the Power of AI in Your Business Conversations.",
   "flow.defaultDescription.59": "Crafting Dialogues that Drive Business Success.",
-  "flow.defaultDescription.60": "Engineered for Excellence, Built for Business."
+  "flow.defaultDescription.60": "Engineered for Excellence, Built for Business.",
+  "starter_flows.simple_agent.name": "데이터 분석 에이전트",
+  "starter_flows.simple_agent.description": "데이터를 수집·분석하고 인사이트를 도출하는 자율형 에이전트입니다.",
+  "starter_flows.vector_store_rag.name": "사내 문서 검색",
+  "starter_flows.vector_store_rag.description": "사내 기술 문서를 벡터 DB에 저장하고 RAG로 검색하는 시스템입니다.",
+  "starter_flows.basic_prompting.name": "반도체 공정 도우미",
+  "starter_flows.basic_prompting.description": "반도체 제조 공정에 대한 질문에 답변하는 AI 어시스턴트입니다."
 }
