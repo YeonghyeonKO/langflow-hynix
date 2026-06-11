@@ -12,7 +12,7 @@ import { useSanitizeRedirectUrl } from "@/hooks/use-sanitize-redirect-url";
 import InputComponent from "../../components/core/parameterRenderComponent/components/inputComponent";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
-import { SIGNIN_ERROR_ALERT } from "../../constants/alerts_constants";
+
 import { CONTROL_LOGIN_STATE } from "../../constants/constants";
 import { AuthContext } from "../../contexts/authContext";
 import useAlertStore from "../../stores/alertStore";
@@ -71,7 +71,7 @@ export default function LoginPage(): JSX.Element {
       },
       onError: (error) => {
         setErrorData({
-          title: SIGNIN_ERROR_ALERT,
+          title: t("errors.signin"),
           list: [error["response"]["data"]["detail"]],
         });
       },
