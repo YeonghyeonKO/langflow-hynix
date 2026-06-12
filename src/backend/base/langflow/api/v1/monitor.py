@@ -257,7 +257,7 @@ async def get_messages(
         if sender_name:
             stmt = stmt.where(MessageTable.sender_name == sender_name)
         if order_by:
-            order_col = getattr(MessageTable, order_by).asc()
+            order_col = getattr(MessageTable, order_by).desc()
             stmt = stmt.order_by(order_col)
         if limit:
             stmt = stmt.limit(limit)
