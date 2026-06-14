@@ -6,17 +6,20 @@ import os
 import secrets
 import urllib.parse
 from datetime import datetime, timedelta, timezone
+from typing import TYPE_CHECKING
 
 import jwt as pyjwt
 from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
-from langflow.api.utils.core import DbSession
 from langflow.services.deps import get_auth_service, get_settings_service
 
 from .hcp_client import fetch_allowed_employees
 from .keycloak_client import KeycloakClient
 from .mapping import get_or_create_shared_user
 from .settings import get_keycloak_settings
+
+if TYPE_CHECKING:
+    from langflow.api.utils.core import DbSession
 
 router = APIRouter(prefix="/api/v1/keycloak", tags=["Keycloak SSO"])
 
@@ -192,7 +195,7 @@ async def keycloak_callback(
             )
         try:
             allowed = await fetch_allowed_employees(s.HCP_API_URL)
-        except Exception:
+        except Exception:  # noqa: BLE001
             return RedirectResponse(
                 url="/login?error=hcp_unavailable",
                 status_code=status.HTTP_302_FOUND,
@@ -300,7 +303,7 @@ async def keycloak_logout(request: Request):
             try:
                 parsed = urllib.parse.urlparse(s.REDIRECT_URI)
                 post_logout_uri = urllib.parse.urlunparse((parsed.scheme, parsed.netloc, "/login", "", "", ""))
-            except Exception:
+            except Exception:  # noqa: BLE001
                 post_logout_uri = "/login"
 
         kc_logout_params = {

@@ -172,7 +172,7 @@ REALM_BASE = f"/realms/{REALM}/protocol/openid-connect"
 
 
 @contextlib.asynccontextmanager
-async def _lifespan(app: FastAPI):
+async def _lifespan(app: FastAPI):  # noqa: ARG001
     print(f"""
 ╭──────────────────────────────────────────────────────────────────╮
 │  Mock Keycloak  {BASE_URL}  (realm: {REALM})
@@ -213,8 +213,8 @@ async def jwks():
 async def authorization(
     client_id: str,
     redirect_uri: str,
-    response_type: str = "code",
-    scope: str = "openid",
+    response_type: str = "code",  # noqa: ARG001
+    scope: str = "openid",  # noqa: ARG001
     state: str = "",
 ):
     project = client_id.removeprefix("langflow-")
@@ -261,11 +261,11 @@ async def authorization(
 
 @app.post(f"{REALM_BASE}/auth/submit")
 async def authorization_submit(
-    username: str = Form(...),
-    password: str = Form(...),
-    client_id: str = Form(...),
-    state: str = Form(""),
-    redirect_uri: str = Form(...),
+    username: str = Form(...),  # noqa: FAST002
+    password: str = Form(...),  # noqa: FAST002
+    client_id: str = Form(...),  # noqa: FAST002
+    state: str = Form(""),  # noqa: FAST002
+    redirect_uri: str = Form(...),  # noqa: FAST002
 ):
     redirect_uri = urllib.parse.unquote(redirect_uri)
     emp_id = username.upper()
@@ -296,11 +296,11 @@ async def authorization_submit(
 
 @app.post(f"{REALM_BASE}/token")
 async def token(
-    grant_type: str = Form(...),
-    code: str = Form(default=""),
-    redirect_uri: str = Form(default=""),
-    client_id: str = Form(default=""),
-    client_secret: str = Form(default=""),
+    grant_type: str = Form(...),  # noqa: FAST002
+    code: str = Form(default=""),  # noqa: FAST002
+    redirect_uri: str = Form(default=""),  # noqa: FAST002, ARG001
+    client_id: str = Form(default=""),  # noqa: FAST002, ARG001
+    client_secret: str = Form(default=""),  # noqa: FAST002, ARG001
 ):
     if grant_type != "authorization_code":
         return JSONResponse({"error": "unsupported_grant_type"}, status_code=400)
@@ -441,4 +441,4 @@ def _error_page(message: str) -> str:
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=PORT, log_level="warning")
+    uvicorn.run(app, host="0.0.0.0", port=PORT, log_level="warning")  # noqa: S104

@@ -14,14 +14,10 @@ from __future__ import annotations
 
 import os
 from io import BytesIO
-from typing import TYPE_CHECKING
 
 import requests
 
 from lfx.log.logger import logger
-
-if TYPE_CHECKING:
-    pass
 
 # File extensions that may have DRM protection
 DRM_TARGET_EXTENSIONS = frozenset({
@@ -71,10 +67,11 @@ def _detect_pdf_drm(file_content: bytes) -> bool:
         from pypdf import PdfReader
 
         reader = PdfReader(BytesIO(file_content))
-        return reader.is_encrypted
     except Exception:  # noqa: BLE001
         # If we can't even parse it, might be encrypted or corrupted
         return True
+    else:
+        return reader.is_encrypted
 
 
 def _detect_ole_drm(file_content: bytes) -> bool:
@@ -142,13 +139,13 @@ def check_drm_permission(employee_id: str) -> bool:
             verify=False,  # noqa: S501 — air-gapped environment
         )
 
-        if response.status_code == 200:
+        if response.status_code == 200:  # noqa: PLR2004
             data = response.json()
             # Accept various response formats
             return data.get("permitted", data.get("has_permission", data.get("result", False)))
 
         logger.warning("DRM check API returned status %s for employee %s", response.status_code, employee_id)
-        return False
+        return False  # noqa: TRY300
 
     except Exception as e:  # noqa: BLE001
         logger.error("DRM check API call failed: %s", e)
@@ -193,7 +190,7 @@ def decrypt_drm_file(file_name: str, file_content: bytes, employee_id: str | Non
             verify=False,  # noqa: S501 — air-gapped environment
         )
 
-        if response.status_code == 200:
+        if response.status_code == 200:  # noqa: PLR2004
             decrypted = response.content
             if not decrypted:
                 msg = f"DRM decrypt API returned empty response for '{file_name}'"

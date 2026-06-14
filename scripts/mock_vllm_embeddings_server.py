@@ -20,7 +20,7 @@ EMBEDDING_DIM = 1024
 
 
 def fake_embedding():
-    return [round(random.uniform(-0.05, 0.05), 8) for _ in range(EMBEDDING_DIM)]
+    return [round(random.uniform(-0.05, 0.05), 8) for _ in range(EMBEDDING_DIM)]  # noqa: S311
 
 
 class MockHandler(BaseHTTPRequestHandler):
@@ -67,7 +67,7 @@ class MockHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(json.dumps(obj).encode())
 
-    def log_message(self, format, *args):
+    def log_message(self, format, *args):  # noqa: A002, ARG002
         print(f"[mock-vllm-emb] {args[0]}")
 
 
@@ -76,7 +76,7 @@ def main():
     parser.add_argument("--port", type=int, default=8001)
     args = parser.parse_args()
 
-    server = HTTPServer(("0.0.0.0", args.port), MockHandler)
+    server = HTTPServer(("0.0.0.0", args.port), MockHandler)  # noqa: S104
     print(f"Mock vLLM Embeddings server on http://localhost:{args.port}")
     print("  GET  /v1/models     → bge-m3, multilingual-e5")
     print(f"  POST /v1/embeddings → {EMBEDDING_DIM}-dim fake vectors")

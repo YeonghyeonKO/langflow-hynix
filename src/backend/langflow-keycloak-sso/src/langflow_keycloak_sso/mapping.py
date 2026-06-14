@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import secrets
+from typing import TYPE_CHECKING
 
 from langflow.initial_setup.setup import get_or_create_default_folder
 from langflow.services.database.models.user.crud import get_user_by_username
 from langflow.services.database.models.user.model import User
 from langflow.services.deps import get_variable_service
 from passlib.context import CryptContext
-from sqlmodel.ext.asyncio.session import AsyncSession
+
+if TYPE_CHECKING:
+    from sqlmodel.ext.asyncio.session import AsyncSession
 
 _pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

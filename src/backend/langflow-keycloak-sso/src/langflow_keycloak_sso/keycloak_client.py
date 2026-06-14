@@ -35,8 +35,9 @@ class KeycloakClient:
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
                 timeout=15,
             )
-        if resp.status_code != 200:
-            raise ValueError(f"Keycloak token exchange failed ({resp.status_code}): {resp.text}")
+        if resp.status_code != 200:  # noqa: PLR2004
+            msg = f"Keycloak token exchange failed ({resp.status_code}): {resp.text}"
+            raise ValueError(msg)
         return resp.json()
 
     def verify_and_decode(self, token: str) -> dict[str, Any]:
@@ -44,7 +45,8 @@ class KeycloakClient:
         try:
             signing_key = self._jwks_client.get_signing_key_from_jwt(token)
         except PyJWKClientError as exc:
-            raise ValueError(f"Failed to fetch signing key: {exc}") from exc
+            msg = f"Failed to fetch signing key: {exc}"
+            raise ValueError(msg) from exc
 
         payload: dict[str, Any] = jwt.decode(
             token,
