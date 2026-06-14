@@ -1,9 +1,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useGetFlowId } from "@/components/core/playgroundComponent/hooks/use-get-flow-id";
-import { useGetMessagesQuery } from "@/controllers/API/queries/messages";
 import { api } from "@/controllers/API/api";
 import { getURL } from "@/controllers/API/helpers/constants";
+import { useGetMessagesQuery } from "@/controllers/API/queries/messages";
 import { usePlaygroundStore } from "@/stores/playgroundStore";
 import type { ChatMessageType } from "@/types/chat";
 import type { Message } from "@/types/messages";

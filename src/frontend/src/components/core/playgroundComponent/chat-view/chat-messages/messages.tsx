@@ -1,6 +1,6 @@
 import { Loader2 } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
-import { useStickToBottomContext, StickToBottom } from "use-stick-to-bottom";
+import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 import { SafariScrollFix } from "@/components/common/safari-scroll-fix";
 import useFlowStore from "@/stores/flowStore";
 import { usePlaygroundStore } from "@/stores/playgroundStore";
