@@ -73,12 +73,7 @@ def get_llm(
     model_name = model.get("name")
     provider = model.get("provider")
     metadata = model.get("metadata", {})
-    logger.info(
-        "get_llm called: provider=%s, model_name=%s, model_class=%s",
-        provider,
-        model_name,
-        metadata.get("model_class"),
-    )
+    logger.info("get_llm called: provider=%s, model_name=%s, model_class=%s", provider, model_name, metadata.get("model_class"))
 
     # Get model class and parameter names from metadata
     api_key_param = metadata.get("api_key_param", "api_key")
@@ -300,9 +295,7 @@ def get_llm(
         # keys from a previously selected provider.
         # Priority: Model Provider vars > Global Variables > env var > "dummy"
         vllm_api_key = provider_vars.get("VLLM_API_KEY") or os.environ.get("VLLM_API_KEY")
-        api_key_source = (
-            "provider_vars" if provider_vars.get("VLLM_API_KEY") else "env" if os.environ.get("VLLM_API_KEY") else None
-        )
+        api_key_source = "provider_vars" if provider_vars.get("VLLM_API_KEY") else "env" if os.environ.get("VLLM_API_KEY") else None
         if not vllm_api_key:
             # Also check Global Variables (user may have set VLLM_API_KEY there
             # instead of in Model Providers settings)
@@ -323,7 +316,7 @@ def get_llm(
         # Log full kwargs for debugging (mask api_key)
         debug_kwargs = dict(kwargs)
         ak = str(debug_kwargs.get(api_key_param, ""))
-        debug_kwargs[api_key_param] = f"{ak[:4]}***{ak[-4:]}" if len(ak) > 8 else "***"  # noqa: PLR2004
+        debug_kwargs[api_key_param] = f"{ak[:4]}***{ak[-4:]}" if len(ak) > 8 else "***"
         logger.info("vLLM ChatOpenAI kwargs: %s, class=%s", debug_kwargs, model_class_name)
 
     try:
