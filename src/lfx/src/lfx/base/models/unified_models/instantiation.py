@@ -111,7 +111,6 @@ def get_llm(
             )
             raise ValueError(msg)
 
-
         # Get the correct variable name from the provider variable mapping
         provider_variable_map = unified_models_module.get_model_provider_variable_mapping()
         variable_name = provider_variable_map.get(provider, f"{provider.upper().replace(' ', '_')}_API_KEY")
@@ -314,7 +313,8 @@ def get_llm(
         kwargs[api_key_param] = vllm_api_key or "dummy"
         logger.info(
             "vLLM model instantiation: model=%s, base_url=%s, api_key_source=%s, provider_vars_keys=%s",
-            model_name, vllm_base_url_value,
+            model_name,
+            vllm_base_url_value,
             api_key_source or "dummy",
             list(provider_vars.keys()),
         )

@@ -20,9 +20,17 @@ import requests
 from lfx.log.logger import logger
 
 # File extensions that may have DRM protection
-DRM_TARGET_EXTENSIONS = frozenset({
-    ".pdf", ".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx",
-})
+DRM_TARGET_EXTENSIONS = frozenset(
+    {
+        ".pdf",
+        ".doc",
+        ".docx",
+        ".ppt",
+        ".pptx",
+        ".xls",
+        ".xlsx",
+    }
+)
 
 # OLE Compound File magic bytes (encrypted Office files)
 OLE_MAGIC = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
@@ -198,10 +206,7 @@ def decrypt_drm_file(file_name: str, file_content: bytes, employee_id: str | Non
             logger.info("DRM decryption successful: %s (%d → %d bytes)", file_name, len(file_content), len(decrypted))
             return decrypted
 
-        msg = (
-            f"DRM decrypt API failed for '{file_name}' "
-            f"(status={response.status_code}): {response.text[:200]}"
-        )
+        msg = f"DRM decrypt API failed for '{file_name}' (status={response.status_code}): {response.text[:200]}"
         raise ValueError(msg)
 
     except requests.RequestException as e:
