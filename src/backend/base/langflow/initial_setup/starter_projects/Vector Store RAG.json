@@ -979,7 +979,8 @@
             "documentation": "",
             "template": {
               "backgroundColor": "neutral"
-            }
+            },
+            "i18n_key": "template_notes.vector_store_rag.f8f85922"
           },
           "type": "note"
         },
@@ -1016,7 +1017,8 @@
             "documentation": "",
             "template": {
               "backgroundColor": "neutral"
-            }
+            },
+            "i18n_key": "template_notes.vector_store_rag.1591280a"
           },
           "type": "note"
         },
@@ -1333,7 +1335,8 @@
             "documentation": "",
             "template": {
               "backgroundColor": "neutral"
-            }
+            },
+            "i18n_key": "template_notes.vector_store_rag.09dbcc90"
           },
           "type": "note"
         },
@@ -1370,7 +1373,8 @@
             "documentation": "",
             "template": {
               "backgroundColor": "transparent"
-            }
+            },
+            "i18n_key": "template_notes.vector_store_rag.ec099fc5"
           },
           "type": "note"
         },
