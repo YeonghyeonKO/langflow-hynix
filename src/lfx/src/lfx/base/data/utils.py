@@ -354,7 +354,7 @@ def extract_text_from_bytes(file_name: str, file_content: bytes, *, employee_id:
                     ["antiword", tmp_path],
                     capture_output=True,
                     text=True,
-                    timeout=30,  # noqa: S607
+                    timeout=30,
                 )
                 if result.returncode == 0:
                     return result.stdout
