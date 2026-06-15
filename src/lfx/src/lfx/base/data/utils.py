@@ -350,8 +350,9 @@ def extract_text_from_bytes(file_name: str, file_content: bytes, *, employee_id:
                 tmp_path = tmp.name
             try:
                 # Use antiword or fallback to textract-like approach
+                cmd = ["antiword", tmp_path]
                 result = subprocess.run(  # noqa: S603, PLW1510
-                    ["antiword", tmp_path],
+                    cmd,
                     capture_output=True,
                     text=True,
                     timeout=30,
