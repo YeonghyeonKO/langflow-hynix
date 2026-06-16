@@ -1,16 +1,18 @@
 import * as Form from "@radix-ui/react-form";
 import { useQueryClient } from "@tanstack/react-query";
 import { useContext, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
 import LangflowLogo from "@/assets/LangflowLogo.svg?react";
+import ShadTooltip from "@/components/common/shadTooltipComponent";
 import { useGetKeycloakConfig } from "@/controllers/API/queries/keycloak/use-get-keycloak-config";
 import { useLoginUser } from "@/controllers/API/queries/auth";
 import { CustomLink } from "@/customization/components/custom-link";
 import { useSanitizeRedirectUrl } from "@/hooks/use-sanitize-redirect-url";
-import { useSearchParams } from "react-router-dom";
 import InputComponent from "../../components/core/parameterRenderComponent/components/inputComponent";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
-import { SIGNIN_ERROR_ALERT } from "../../constants/alerts_constants";
+
 import { CONTROL_LOGIN_STATE } from "../../constants/constants";
 import { AuthContext } from "../../contexts/authContext";
 import useAlertStore from "../../stores/alertStore";
@@ -28,6 +30,7 @@ const SSO_ERROR_MESSAGES: Record<string, string> = {
 };
 
 export default function LoginPage(): JSX.Element {
+  const { t } = useTranslation();
   const [inputState, setInputState] =
     useState<loginInputStateType>(CONTROL_LOGIN_STATE);
   const { password, username } = inputState;
@@ -37,9 +40,12 @@ export default function LoginPage(): JSX.Element {
   const [searchParams] = useSearchParams();
   const errorCode = searchParams.get("error");
   const employeeId = searchParams.get("employee");
+  const adminParam = searchParams.get("admin") === "true";
+
+  const [showAdminLogin, setShowAdminLogin] = useState(adminParam);
 
   const { data: keycloakConfig } = useGetKeycloakConfig();
-  const ssoEnabled = keycloakConfig?.enabled === true;
+  const ssoEnabled = keycloakConfig?.enabled === true && !showAdminLogin;
 
   const { login, clearAuthSession } = useContext(AuthContext);
   const setErrorData = useAlertStore((state) => state.setErrorData);
@@ -65,7 +71,7 @@ export default function LoginPage(): JSX.Element {
       },
       onError: (error) => {
         setErrorData({
-          title: SIGNIN_ERROR_ALERT,
+          title: t("errors.signin"),
           list: [error["response"]["data"]["detail"]],
         });
       },
@@ -82,7 +88,7 @@ export default function LoginPage(): JSX.Element {
             className="mb-4 h-10 w-10 scale-[1.5]"
           />
           <span className="mb-6 text-2xl font-semibold text-primary">
-            Sign in to Langflow
+            AI Agent Builder
           </span>
           {errorCode && (
             <div className="mb-4 w-full rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -90,9 +96,7 @@ export default function LoginPage(): JSX.Element {
                 {SSO_ERROR_MESSAGES[errorCode] ?? `로그인 오류: ${errorCode}`}
               </p>
               {employeeId && (
-                <p className="mt-1 text-xs text-red-500">
-                  사번: {employeeId}
-                </p>
+                <p className="mt-1 text-xs text-red-500">사번: {employeeId}</p>
               )}
             </div>
           )}
@@ -109,6 +113,13 @@ export default function LoginPage(): JSX.Element {
               {keycloakConfig.button_text ?? "SK하이닉스 SSO 로그인"}
             </Button>
           </div>
+          <button
+            type="button"
+            className="mt-4 text-xs text-muted-foreground hover:text-primary transition-colors"
+            onClick={() => setShowAdminLogin(true)}
+          >
+            관리자 로그인
+          </button>
         </div>
       </div>
     );
@@ -128,19 +139,19 @@ export default function LoginPage(): JSX.Element {
       className="h-screen w-full"
     >
       <div className="flex h-full w-full flex-col items-center justify-center bg-muted">
-        <div className="flex w-72 flex-col items-center justify-center gap-2">
+        <div className="flex w-full max-w-xs flex-col items-center justify-center gap-2">
           <LangflowLogo
-            title="Langflow logo"
+            title={t("common.langflowLogo")}
             className="mb-4 h-10 w-10 scale-[1.5]"
           />
-          <span className="mb-6 text-2xl font-semibold text-primary">
-            Sign in to Langflow
+          <span className="mb-6 text-2xl font-semibold text-primary text-center">
+            AI Agent Builder
           </span>
           <div className="mb-3 w-full">
             <Form.Field name="username">
-              <Form.Label className="data-[invalid]:label-invalid">
-                Username{" "}
-                <span className="font-medium text-destructive">*</span>
+              <Form.Label className="data-[invalid]:label-invalid flex items-center gap-1 overflow-hidden">
+                <span className="truncate">{t("auth.usernameLabel")}</span>
+                <span className="shrink-0 font-medium text-destructive">*</span>
               </Form.Label>
               <Form.Control asChild>
                 <Input
@@ -161,9 +172,9 @@ export default function LoginPage(): JSX.Element {
           </div>
           <div className="mb-3 w-full">
             <Form.Field name="password">
-              <Form.Label className="data-[invalid]:label-invalid">
-                Password{" "}
-                <span className="font-medium text-destructive">*</span>
+              <Form.Label className="data-[invalid]:label-invalid flex items-center gap-1 overflow-hidden">
+                <span className="truncate">{t("auth.passwordLabel")}</span>
+                <span className="shrink-0 font-medium text-destructive">*</span>
               </Form.Label>
               <InputComponent
                 onChange={(value) => {
@@ -190,9 +201,20 @@ export default function LoginPage(): JSX.Element {
           </div>
           <div className="w-full">
             <CustomLink to="/signup">
-              <Button className="w-full" variant="outline" type="button">
-                Don't have an account?&nbsp;<b>Sign Up</b>
-              </Button>
+              <ShadTooltip
+                content={`${t("auth.noAccount")} ${t("auth.signUpLink")}`}
+                styleClasses="z-50"
+              >
+                <Button
+                  className="w-full overflow-hidden"
+                  variant="outline"
+                  type="button"
+                >
+                  <span className="truncate">
+                    {t("auth.noAccount")}&nbsp;<b>{t("auth.signUpLink")}</b>
+                  </span>
+                </Button>
+              </ShadTooltip>
             </CustomLink>
           </div>
         </div>

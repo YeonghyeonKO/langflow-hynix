@@ -7,8 +7,8 @@ separateFrontend: true
 backend:
   image:
     repository: dk02315/langflow-hynix
-    tag: v1.9.0-hynix-rc0            # non-SSO image (overridden automatically when keycloak.enabled=true)
-    ssoTag: v1.9.0-hynix-sso-rc0     # SSO image tag
+    tag: v1.9.0-hynix-rc2            # non-SSO image (overridden automatically when keycloak.enabled=true)
+    ssoTag: v1.9.0-hynix-sso-rc2     # SSO image tag
     pullPolicy: IfNotPresent
   resources:
     requests:
@@ -17,13 +17,21 @@ backend:
     limits:
       cpu: "2"
       memory: 4Gi
+  readinessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 15
+    timeoutSeconds: 5
+  livenessProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 30
+    timeoutSeconds: 10
   # -- Extra environment variables for the backend
   extraEnv: []
 
 frontend:
   image:
     repository: dk02315/langflow-hynix-frontend
-    tag: v1.9.0-hynix-rc0
+    tag: v1.9.0-hynix-rc2
     pullPolicy: IfNotPresent
   port: 8080
   resources:
@@ -75,6 +83,26 @@ langflow:
   accessSecure: "false"
   accessSameSite: "lax"
   databaseUrl: ""          # leave empty for default SQLite
+  store: "false"           # disable Langflow Store API (air-gapped)
+  terminationGracePeriodSeconds: 60
+
+# -- NFS additional volumes (flow data & custom components)
+# Uses PV/PVC to support mountOptions (nfsvers, hard, timeo, etc.)
+nfsVolumes:
+  flow:
+    enabled: false
+    server: ""               # e.g. nas.company.com
+    path: "/langflow/prd/flow"
+    mountPath: /app/flow
+    storage: 5Gi
+    mountOptions: []         # e.g. [nfsvers=4.1, hard, timeo=600]
+  component:
+    enabled: false
+    server: ""               # e.g. nas.company.com
+    path: "/langflow/prd/component"
+    mountPath: /app/custom_components
+    storage: 5Gi
+    mountOptions: []         # e.g. [nfsvers=4.1, hard, timeo=600]
 
 # -- NFS PersistentVolume
 nfs:

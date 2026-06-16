@@ -267,13 +267,13 @@ export const DESCRIPTIONS: string[] = [
   "Your Hub for Text Generation.",
   "Promptly Ingenious!",
   "Building Linguistic Labyrinths.",
-  "Langflow: Create, Chain, Communicate.",
+  "AI Agent Builder: Create, Chain, Communicate.",
   "Connect the Dots, Craft Language.",
   "Interactive Language Weaving.",
   "Generate, Innovate, Communicate.",
   "Conversation Catalyst Engine.",
   "Language Chainlink Master.",
-  "Design Dialogues with Langflow.",
+  "Design Dialogues with AI Agent Builder.",
   "Nurture NLP Nodes Here.",
   "Conversational Cartography Unlocked.",
   "Design, Develop, Dialogize.",
@@ -668,7 +668,7 @@ export const TIMEOUT_ERROR_DESCRIPION = "Server is busy.";
 export const SIGN_UP_SUCCESS = "Account created! Await admin activation. ";
 
 export const API_PAGE_PARAGRAPH =
-  "Your secret Langflow API keys are listed below. Do not share your API key with others, or expose it in the browser or other client-side code.";
+  "Your secret API keys are listed below. Do not share your API key with others, or expose it in the browser or other client-side code.";
 
 export const API_PAGE_USER_KEYS =
   "This user does not have any keys assigned at the moment.";
@@ -750,7 +750,7 @@ export const INPUT_HANDLER_HOVER = "Avaliable input components:";
 export const OUTPUT_HANDLER_HOVER = "Avaliable output components:";
 export const TEXT_INPUT_MODAL_TITLE = "Inputs";
 export const OUTPUTS_MODAL_TITLE = "Outputs";
-export const LANGFLOW_CHAT_TITLE = "Langflow Chat";
+export const LANGFLOW_CHAT_TITLE = "AI Agent Builder Chat";
 export const CHAT_INPUT_PLACEHOLDER =
   "No chat input variables found. Click to run your flow.";
 export const CHAT_INPUT_PLACEHOLDER_SEND = "Send a message...";
@@ -758,9 +758,9 @@ export const EDIT_CODE_TITLE = "Edit Code";
 export const MY_COLLECTION_DESC =
   "Manage your projects. Download and upload entire collections.";
 export const STORE_DESC = "Explore community-shared flows and components.";
-export const STORE_TITLE = "Langflow Store";
+export const STORE_TITLE = "AI Agent Builder Store";
 export const NO_API_KEY = "You don't have an API key.";
-export const INSERT_API_KEY = "Insert your Langflow API key.";
+export const INSERT_API_KEY = "Insert your API key.";
 export const INVALID_API_KEY = "Your API key is not valid. ";
 export const CREATE_API_KEY = `Don't have an API key? Sign up at`;
 export const STATUS_BUILD = "Build to validate status.";
@@ -808,6 +808,10 @@ export const BUNDLES_SIDEBAR_FOLDER_NAMES = [
   "cassandra",
   "FAISS",
   "pgvector",
+  "codeagents",
+  "Code Agents",
+  "files_ingestion",
+  "File Processing",
 ];
 
 export const AUTHORIZED_DUPLICATE_REQUESTS = [
@@ -893,8 +897,16 @@ export const DRAG_EVENTS_CUSTOM_TYPESS = {
 export const NOTE_NODE_MIN_WIDTH = 280;
 export const NOTE_NODE_MIN_HEIGHT = 140;
 export const DEFAULT_NOTE_SIZE = 324;
+export const NOTE_PLACEMENT_CURSOR_OFFSET = 20;
 export const CHAT_INPUT_MIN_HEIGHT = 24;
 export const CHAT_INPUT_MAX_HEIGHT = 200;
+
+/**
+ * Collision padding (px) reserved at the bottom of the canvas viewport for
+ * node popovers (dropdowns) when the build status / error notification panel
+ * is visible. Keeps Radix popovers from opening over the panel.
+ */
+export const BUILD_PANEL_COLLISION_PADDING_PX = 160;
 
 export const COLOR_OPTIONS = {
   amber: "hsl(var(--note-amber))",

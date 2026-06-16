@@ -9,7 +9,7 @@
 FROM --platform=$BUILDPLATFORM node:lts-bookworm-slim AS builder-base
 COPY src/frontend /frontend
 
-RUN cd /frontend && npm install && LANGFLOW_AUTO_LOGIN=false npm run build
+RUN cd /frontend && for i in 1 2 3; do npm install && break || (echo "npm install attempt $i failed, retrying..."; sleep 10); done && LANGFLOW_AUTO_LOGIN=false npm run build
 
 ################################
 # RUNTIME

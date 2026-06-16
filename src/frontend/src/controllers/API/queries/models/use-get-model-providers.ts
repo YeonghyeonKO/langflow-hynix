@@ -7,7 +7,7 @@ export interface ModelProviderInfo {
   provider: string;
   models: Array<{
     model_name: string;
-    metadata: Record<string, any>;
+    metadata: Record<string, unknown>;
   }>;
   is_enabled: boolean;
   is_configured?: boolean;
@@ -84,8 +84,11 @@ const getProviderIcon = (providerName: string): string => {
     "Azure OpenAI": "AzureOpenAI",
     SambaNova: "SambaNova",
     Ollama: "Ollama",
+    vLLM: "vLLM",
+    "vLLM Embeddings": "vLLM",
     "IBM WatsonX": "IBM",
     "IBM watsonx.ai": "IBM",
+    OpenRouter: "OpenRouter",
   };
 
   return iconMap[providerName] || "Bot";

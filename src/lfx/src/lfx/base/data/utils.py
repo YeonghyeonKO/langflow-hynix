@@ -1,6 +1,8 @@
 import contextlib
 import logging
 import tempfile
+
+from lfx.log.logger import logger
 import unicodedata
 from collections.abc import Callable
 from concurrent import futures
@@ -21,6 +23,11 @@ from lfx.utils.async_helpers import run_until_complete
 
 logger = logging.getLogger(__name__)
 
+# Max bytes to feed to chardet for encoding detection.
+# Scanning the first 100 KB is sufficient for reliable detection
+# and avoids O(n) overhead on large files (e.g. 800s for 1.5 GB).
+_CHARDET_SAMPLE_BYTES = 102400
+
 # Types of files that can be read simply by file.read()
 # and have 100% to be completely readable
 TEXT_FILE_TYPES = [
@@ -35,7 +42,12 @@ TEXT_FILE_TYPES = [
     "xml",
     "html",
     "htm",
+    "doc",
     "docx",
+    "ppt",
+    "pptx",
+    "xls",
+    "xlsx",
     "py",
     "sh",
     "sql",
@@ -153,7 +165,7 @@ def _detect_encoding_with_fallbacks(raw_data: bytes) -> list[str]:
     Returns a list of encodings to try in order, ending with latin-1
     which always succeeds as it maps all 256 byte values.
     """
-    result = chardet.detect(raw_data)
+    result = chardet.detect(raw_data[:_CHARDET_SAMPLE_BYTES])
     detected_encoding = result.get("encoding") if result else None
 
     if detected_encoding in {"Windows-1252", "Windows-1254", "MacRoman"}:
@@ -274,14 +286,26 @@ async def read_docx_file_async(file_path: str) -> str:
             Path(temp_path).unlink()
 
 
-def extract_text_from_bytes(file_name: str, file_content: bytes) -> str:
+def extract_text_from_bytes(file_name: str, file_content: bytes, *, employee_id: str | None = None) -> str:
     """Extract text from binary file content based on file extension.
 
     Supports PDF (via pypdf), DOCX (via python-docx), and plain text files.
+    If DRM is enabled and detected, decrypts the file before extraction.
+
+    Args:
+        file_name: The filename (used for extension detection).
+        file_content: Raw file bytes.
+        employee_id: Employee ID from Keycloak SSO for DRM permission check.
 
     Raises:
         ValueError: If the file content is corrupted or cannot be parsed.
+        PermissionError: If DRM is detected but user lacks permission.
     """
+    from lfx.base.data.drm import process_drm_file
+
+    # DRM processing: detect → check permission → decrypt (if applicable)
+    file_content = process_drm_file(file_name, file_content, employee_id=employee_id)
+
     lower_name = file_name.lower()
     if lower_name.endswith(".pdf"):
         try:
@@ -295,10 +319,149 @@ def extract_text_from_bytes(file_name: str, file_content: bytes) -> str:
             from docx import Document
 
             doc = Document(BytesIO(file_content))
-            return "\n\n".join(p.text for p in doc.paragraphs)
+            texts = []
+            for element in doc.element.body:
+                tag = element.tag.split("}")[-1] if "}" in element.tag else element.tag
+                if tag == "p":
+                    # Paragraph
+                    from docx.text.paragraph import Paragraph
+
+                    para = Paragraph(element, doc)
+                    if para.text.strip():
+                        texts.append(para.text)
+                elif tag == "tbl":
+                    # Table — extract row by row
+                    from docx.table import Table
+
+                    table = Table(element, doc)
+                    for row in table.rows:
+                        row_text = "\t".join(cell.text.strip() for cell in row.cells)
+                        if row_text.strip():
+                            texts.append(row_text)
+            return "\n\n".join(texts)
         except Exception as e:
             msg = f"Failed to parse DOCX file '{file_name}': {e}"
             raise ValueError(msg) from e
+    if lower_name.endswith(".doc"):
+        try:
+            import subprocess
+            import tempfile
+
+            with tempfile.NamedTemporaryFile(suffix=".doc", delete=False) as tmp:
+                tmp.write(file_content)
+                tmp_path = tmp.name
+            try:
+                # Use antiword or fallback to textract-like approach
+                result = subprocess.run(
+                    ["antiword", tmp_path], capture_output=True, text=True, timeout=30
+                )
+                if result.returncode == 0:
+                    return result.stdout
+                # Fallback: try python-docx on .doc (works for some formats)
+                from docx import Document
+
+                doc = Document(BytesIO(file_content))
+                return "\n\n".join(p.text for p in doc.paragraphs)
+            finally:
+                Path(tmp_path).unlink(missing_ok=True)
+        except Exception as e:
+            msg = f"Failed to parse DOC file '{file_name}': {e}"
+            raise ValueError(msg) from e
+    if lower_name.endswith((".pptx", ".ppt")):
+        try:
+            from pptx import Presentation
+            from pptx.util import Inches  # noqa: F401
+
+            prs = Presentation(BytesIO(file_content))
+            texts = []
+            for slide in prs.slides:
+                for shape in slide.shapes:
+                    if shape.has_text_frame:
+                        for paragraph in shape.text_frame.paragraphs:
+                            text = paragraph.text.strip()
+                            if text:
+                                texts.append(text)
+                    # Extract table content
+                    if shape.has_table:
+                        for row in shape.table.rows:
+                            row_text = "\t".join(cell.text.strip() for cell in row.cells)
+                            if row_text.strip():
+                                texts.append(row_text)
+            return "\n\n".join(texts)
+        except Exception as e:
+            ext = "PPTX" if lower_name.endswith(".pptx") else "PPT"
+            msg = f"Failed to parse {ext} file '{file_name}': {e}"
+            raise ValueError(msg) from e
+    if lower_name.endswith(".xlsx"):
+        try:
+            import warnings
+
+            from openpyxl import load_workbook
+
+            MAX_ROWS = 10_000  # OOM prevention (~5MB text output max)
+
+            # Probe for missing default stylesheet — files generated by non-Excel
+            # tools often omit it AND record an incorrect <dimension> (e.g. A1:A1).
+            # read_only=True trusts that dimension and silently truncates data.
+            use_read_only = True
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always")
+                probe_wb = load_workbook(BytesIO(file_content), read_only=True, data_only=True)
+                probe_wb.close()
+            if any("no default style" in str(w.message).lower() for w in caught):
+                logger.info("XLSX '%s': missing default stylesheet, falling back to read_only=False", file_name)
+                use_read_only = False
+
+            wb = load_workbook(BytesIO(file_content), read_only=use_read_only, data_only=True)
+            texts = []
+            row_count = 0
+            for sheet in wb.worksheets:
+                for row in sheet.iter_rows(values_only=True):
+                    row_count += 1
+                    if row_count > MAX_ROWS:
+                        logger.warning("XLSX '%s' truncated at %d rows to prevent OOM", file_name, MAX_ROWS)
+                        break
+                    row_text = "\t".join(str(cell) if cell is not None else "" for cell in row)
+                    if row_text.strip():
+                        texts.append(row_text)
+                if row_count > MAX_ROWS:
+                    break
+            wb.close()
+            return "\n".join(texts)
+        except Exception as e:
+            msg = f"Failed to parse XLSX file '{file_name}': {e}"
+            raise ValueError(msg) from e
+    if lower_name.endswith(".xls"):
+        try:
+            import xlrd
+
+            MAX_ROWS = 10_000  # OOM prevention
+            book = xlrd.open_workbook(file_contents=file_content)
+            texts = []
+            row_count = 0
+            for sheet in book.sheets():
+                for row_idx in range(sheet.nrows):
+                    row_count += 1
+                    if row_count > MAX_ROWS:
+                        logger.warning("XLS '%s' truncated at %d rows to prevent OOM", file_name, MAX_ROWS)
+                        break
+                    row_text = "\t".join(str(cell.value) for cell in sheet.row(row_idx))
+                    if row_text.strip():
+                        texts.append(row_text)
+                if row_count > MAX_ROWS:
+                    break
+            return "\n".join(texts)
+        except Exception as e:
+            msg = f"Failed to parse XLS file '{file_name}': {e}"
+            raise ValueError(msg) from e
+    if lower_name.endswith(".csv"):
+        MAX_LINES = 10_000  # OOM prevention
+        decoded = file_content.decode("utf-8", errors="ignore")
+        lines = decoded.split("\n")
+        if len(lines) > MAX_LINES:
+            logger.warning("CSV '%s' truncated at %d lines to prevent OOM", file_name, MAX_LINES)
+            return "\n".join(lines[:MAX_LINES])
+        return decoded
     return file_content.decode("utf-8", errors="ignore")
 
 
@@ -341,6 +504,10 @@ def parse_text_file_to_data(file_path: str, *, silent_errors: bool) -> Data | No
             text = parse_pdf_to_text(file_path)
         elif file_path.endswith(".docx"):
             text = read_docx_file(file_path)
+        elif file_path.endswith((".xlsx", ".xls", ".pptx", ".ppt", ".doc")):
+            with open(file_path, "rb") as f:
+                file_content = f.read()
+            text = extract_text_from_bytes(Path(file_path).name, file_content)
         else:
             text = read_text_file(file_path)
 
@@ -367,6 +534,13 @@ async def parse_text_file_to_data_async(file_path: str, *, silent_errors: bool) 
             text = await parse_pdf_to_text_async(file_path)
         elif file_path.endswith(".docx"):
             text = await read_docx_file_async(file_path)
+        elif file_path.endswith((".xlsx", ".xls", ".pptx", ".ppt", ".doc")):
+            # Read binary and use extract_text_from_bytes
+            import aiofiles
+
+            async with aiofiles.open(file_path, "rb") as f:
+                file_content = await f.read()
+            text = extract_text_from_bytes(Path(file_path).name, file_content)
         else:
             # Text files - read directly, no temp file needed
             text = await read_text_file_async(file_path)

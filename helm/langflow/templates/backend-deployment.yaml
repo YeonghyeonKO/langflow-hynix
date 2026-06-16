@@ -7,6 +7,8 @@ metadata:
     app.kubernetes.io/component: backend
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       {{- include "langflow.backendSelectorLabels" . | nindent 6 }}
@@ -15,6 +17,7 @@ spec:
       labels:
         {{- include "langflow.backendSelectorLabels" . | nindent 8 }}
     spec:
+      terminationGracePeriodSeconds: {{ .Values.langflow.terminationGracePeriodSeconds | default 60 }}
       {{- with (include "langflow.imagePullSecrets" . | trim) }}
       imagePullSecrets:
         {{- . | nindent 8 }}
@@ -82,15 +85,15 @@ spec:
             - name: KEYCLOAK_SHARED_USERNAME
               value: {{ .Values.keycloak.sharedUsername | quote }}
             {{- end }}
-            {{- if .Values.keycloak.allowedEmployee }}
             - name: KEYCLOAK_ALLOWED_EMPLOYEE
-              value: {{ .Values.keycloak.allowedEmployee | quote }}
-            {{- end }}
+              value: {{ if .Values.keycloak.allowedEmployee }}{{ printf "%s,%s" (toString .Values.instanceName) (toString .Values.keycloak.allowedEmployee) | quote }}{{ else }}{{ toString .Values.instanceName | quote }}{{ end }}
             {{- if .Values.keycloak.hcpApiUrl }}
             - name: KEYCLOAK_HCP_API_URL
               value: {{ .Values.keycloak.hcpApiUrl | quote }}
             {{- end }}
             {{- end }}
+            - name: LANGFLOW_STORE
+              value: {{ .Values.langflow.store | default "false" | quote }}
             {{- if .Values.ssl.enabled }}
             - name: SSL_CERT_FILE
               value: /etc/ssl/custom/{{ .Values.ssl.key }}
@@ -107,6 +110,14 @@ spec:
               {{- if .Values.nfs.enabled }}
               subPath: {{ include "langflow.fullname" . }}
               {{- end }}
+            {{- if .Values.nfsVolumes.flow.enabled }}
+            - name: nfs-flow
+              mountPath: {{ .Values.nfsVolumes.flow.mountPath | default "/app/flow" }}
+            {{- end }}
+            {{- if .Values.nfsVolumes.component.enabled }}
+            - name: nfs-component
+              mountPath: {{ .Values.nfsVolumes.component.mountPath | default "/app/custom_components" }}
+            {{- end }}
             {{- if .Values.ssl.enabled }}
             - name: ca-cert
               mountPath: /etc/ssl/custom
@@ -116,14 +127,16 @@ spec:
             httpGet:
               path: /health
               port: 7860
-            initialDelaySeconds: 15
-            periodSeconds: 10
+            initialDelaySeconds: {{ .Values.backend.readinessProbe.initialDelaySeconds | default 30 }}
+            periodSeconds: {{ .Values.backend.readinessProbe.periodSeconds | default 15 }}
+            timeoutSeconds: {{ .Values.backend.readinessProbe.timeoutSeconds | default 5 }}
           livenessProbe:
             httpGet:
               path: /health
               port: 7860
-            initialDelaySeconds: 30
-            periodSeconds: 30
+            initialDelaySeconds: {{ .Values.backend.livenessProbe.initialDelaySeconds | default 60 }}
+            periodSeconds: {{ .Values.backend.livenessProbe.periodSeconds | default 30 }}
+            timeoutSeconds: {{ .Values.backend.livenessProbe.timeoutSeconds | default 10 }}
           {{- with .Values.backend.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
@@ -132,6 +145,16 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: {{ include "langflow.fullname" . }}-data
+        {{- if .Values.nfsVolumes.flow.enabled }}
+        - name: nfs-flow
+          persistentVolumeClaim:
+            claimName: {{ include "langflow.fullname" . }}-nfs-flow
+        {{- end }}
+        {{- if .Values.nfsVolumes.component.enabled }}
+        - name: nfs-component
+          persistentVolumeClaim:
+            claimName: {{ include "langflow.fullname" . }}-nfs-component
+        {{- end }}
         {{- if .Values.ssl.enabled }}
         - name: ca-cert
           {{- include "langflow.sslVolume" . | nindent 10 }}

@@ -1,0 +1,17 @@
+services:
+  langflow:
+    image: dk02315/langflow-hynix:v1.9.5-hynix-sso-rc11
+    ports:
+      - "7860:7860"
+    environment:
+      # SSO 비활성화 (로컬 테스트용)
+      - LANGFLOW_AUTO_LOGIN=true
+      - LANGFLOW_SECRET_KEY=local-test-secret-key
+      # 데이터 경로
+      - LANGFLOW_CONFIG_DIR=/data
+    volumes:
+      - langflow_data:/data
+    restart: unless-stopped
+
+volumes:
+  langflow_data:

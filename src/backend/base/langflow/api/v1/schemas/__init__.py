@@ -353,6 +353,14 @@ class SimplifiedAPIRequest(BaseModel):
     )
     tweaks: Tweaks | None = Field(default=None, description="The tweaks")
     session_id: str | None = Field(default=None, description="The session id")
+    user_id: str | None = Field(
+        default=None,
+        description=(
+            "Optional end-user identifier forwarded to tracing providers (e.g. Langfuse) "
+            "as the trace's user_id. Does not affect authentication or authorization — the "
+            "API key owner remains the effective Langflow user."
+        ),
+    )
 
 
 # (alias) type ReactFlowJsonObject<NodeData = any, EdgeData = any> = {
@@ -380,6 +388,18 @@ class BaseConfigResponse(BaseModel):
     voice_mode_available: bool
     frontend_timeout: int
     mcp_base_url: str
+    # Mode A only: gates the palette Bundle-header Reload action.  Surfaced
+    # at runtime so the packaged frontend (built once with the env var
+    # default) can still light up the button when an operator turns the
+    # backend reload route on -- the build-time Vite flag gates first-paint,
+    # but ``lfx extension dev`` and ``--env-file LANGFLOW_ENABLE_EXTENSION_RELOAD=true``
+    # opt in after the build is frozen, so the UI consults this field too.
+    enable_extension_reload: bool
+    # Mirrors ``LANGFLOW_AUTHZ_ENABLED``. EE/custom frontends gate the Access
+    # Control settings entry on this flag; OSS UI ignores it until wired.
+    authz_enabled: bool = False
+    agent_hub_url: str = ""
+    agent_builder_channel_url: str = ""
 
 
 class PublicConfigResponse(BaseConfigResponse):
@@ -393,15 +413,18 @@ class PublicConfigResponse(BaseConfigResponse):
     allow_custom_components: bool
 
     @classmethod
-    def from_settings(cls, settings: Settings) -> "PublicConfigResponse":
+    def from_settings(cls, settings: Settings, auth_settings) -> "PublicConfigResponse":
         """Create a PublicConfigResponse instance using values from a Settings object.
 
         Parameters:
             settings (Settings): The Settings object containing configuration values.
+            auth_settings: Auth settings (for ``authz_enabled``).
 
         Returns:
             PublicConfigResponse: An instance populated with public-safe configuration values.
         """
+        import os
+
         return cls(
             feature_flags=FEATURE_FLAGS,
             max_file_size_upload=settings.max_file_size_upload,
@@ -409,7 +432,11 @@ class PublicConfigResponse(BaseConfigResponse):
             voice_mode_available=settings.voice_mode_available,
             frontend_timeout=settings.frontend_timeout,
             mcp_base_url=settings.mcp_base_url,
+            enable_extension_reload=settings.enable_extension_reload,
             allow_custom_components=settings.allow_custom_components,
+            authz_enabled=bool(getattr(auth_settings, "AUTHZ_ENABLED", False)),
+            agent_hub_url=os.getenv("LANGFLOW_AGENT_HUB_URL", ""),
+            agent_builder_channel_url=os.getenv("LANGFLOW_AGENT_BUILDER_CHANNEL", ""),
         )
 
 
@@ -432,6 +459,14 @@ class ConfigResponse(BaseConfigResponse):
     default_folder_name: str
     hide_getting_started_progress: bool
     allow_custom_components: bool
+    # Embedded mode feature flags
+    embedded_mode: bool
+    hide_logout_button: bool
+    hide_new_project_button: bool
+    hide_new_flow_button: bool
+    hide_starter_projects: bool
+    mcp_servers_locked: bool
+    custom_component_admin_only: bool
 
     @classmethod
     def from_settings(cls, settings: Settings, auth_settings) -> "ConfigResponse":
@@ -463,10 +498,21 @@ class ConfigResponse(BaseConfigResponse):
             event_delivery=settings.event_delivery,
             voice_mode_available=settings.voice_mode_available,
             mcp_base_url=settings.mcp_base_url,
+            enable_extension_reload=settings.enable_extension_reload,
             webhook_auth_enable=auth_settings.WEBHOOK_AUTH_ENABLE,
             default_folder_name=DEFAULT_FOLDER_NAME,
-            hide_getting_started_progress=os.getenv("HIDE_GETTING_STARTED_PROGRESS", "").lower() == "true",
+            hide_getting_started_progress=settings.hide_getting_started_progress,
             allow_custom_components=settings.allow_custom_components,
+            authz_enabled=bool(getattr(auth_settings, "AUTHZ_ENABLED", False)),
+            embedded_mode=settings.embedded_mode,
+            hide_logout_button=settings.hide_logout_button or settings.embedded_mode,
+            hide_new_project_button=settings.hide_new_project_button or settings.embedded_mode,
+            hide_new_flow_button=settings.hide_new_flow_button or settings.embedded_mode,
+            hide_starter_projects=settings.hide_starter_projects or settings.embedded_mode,
+            mcp_servers_locked=settings.mcp_servers_locked,
+            custom_component_admin_only=settings.custom_component_admin_only,
+            agent_hub_url=os.getenv("LANGFLOW_AGENT_HUB_URL", ""),
+            agent_builder_channel_url=os.getenv("LANGFLOW_AGENT_BUILDER_CHANNEL", ""),
         )
 
 

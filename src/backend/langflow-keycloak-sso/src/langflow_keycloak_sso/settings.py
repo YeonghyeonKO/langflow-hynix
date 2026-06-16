@@ -59,6 +59,11 @@ class KeycloakSettings(BaseSettings):
     # (e.g. langflow-{empno}.aipp02.skhynix.com).
     ALLOWED_EMPLOYEE: str = ""
 
+    # Comma-separated list of admin employee numbers that can bypass
+    # ALLOWED_EMPLOYEE restriction and log into any instance.
+    # Example: KEYCLOAK_ADMIN_EMPLOYEES=2074795,2073215
+    ADMIN_EMPLOYEES: str = ""
+
     @property
     def token_endpoint(self) -> str:
         return f"{self.SERVER_URL}/realms/{self.REALM}/protocol/openid-connect/token"

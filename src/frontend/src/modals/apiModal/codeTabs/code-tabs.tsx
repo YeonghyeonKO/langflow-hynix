@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import {
   oneDark,
@@ -6,10 +7,10 @@ import {
 } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { useShallow } from "zustand/react/shallow";
 import IconComponent from "@/components/common/genericIconComponent";
+import { copyToClipboard as copyText } from "@/utils/clipboardUtils";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs-button";
 import { customCodeTabsClass } from "@/customization/constants";
-import { useIsAutoLogin } from "@/hooks/use-is-auto-login";
 import useAuthStore from "@/stores/authStore";
 import useFlowStore from "@/stores/flowStore";
 import { useTweaksStore } from "@/stores/tweaksStore";
@@ -34,7 +35,13 @@ const operatingSystemTabs = [
   },
 ];
 
+const STEP_TITLE_KEYS: Record<string, string> = {
+  "Upload files to the server": "apiModal.uploadFilesStep",
+  "Execute the flow with uploaded files": "apiModal.executeFlowStep",
+};
+
 export default function APITabsComponent() {
+  const { t } = useTranslation();
   const [isCopied, setIsCopied] = useState<Boolean>(false);
   const [copiedStep, setCopiedStep] = useState<string | null>(null);
   const endpointName = useFlowStore(
@@ -62,6 +69,7 @@ export default function APITabsComponent() {
   );
 
   const includeTopLevelInputValue = formatPayloadTweaks(tweaks);
+  // biome-ignore lint/suspicious/noExplicitAny: legacy
   const processedPayload: any = {
     output_type: hasChatOutput ? "chat" : "text",
     input_type: hasChatInput ? "chat" : "text",
@@ -126,15 +134,11 @@ export default function APITabsComponent() {
   const [selectedTab, setSelectedTab] = useState("Python");
 
   const copyToClipboard = (codeText?: string, stepId?: string) => {
-    if (!navigator.clipboard || !navigator.clipboard.writeText) {
-      return;
-    }
-
     const currentTab = tabsList.find((tab) => tab.title === selectedTab);
     const textToCopy =
       codeText || (typeof currentTab?.code === "string" ? currentTab.code : "");
     if (textToCopy) {
-      navigator.clipboard.writeText(textToCopy).then(() => {
+      copyText(textToCopy).then(() => {
         if (stepId) {
           setCopiedStep(stepId);
           setTimeout(() => {
@@ -225,7 +229,11 @@ export default function APITabsComponent() {
                           : ""
                       }
                     >
-                      <h4 className="mb-2 text-sm font-medium">{step.title}</h4>
+                      <h4 className="mb-2 text-sm font-medium">
+                        {STEP_TITLE_KEYS[step.title]
+                          ? t(STEP_TITLE_KEYS[step.title])
+                          : step.title}
+                      </h4>
                       <div
                         className={`relative flex ${
                           index === steps.length - 1 ? "h-full" : ""

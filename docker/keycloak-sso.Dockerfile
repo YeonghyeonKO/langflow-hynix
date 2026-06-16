@@ -36,14 +36,14 @@ RUN apt-get update \
         git \
         curl \
         npm \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Python dependencies (lockfile-driven, cached layer) ──────────────────────
 COPY ./uv.lock ./README.md ./pyproject.toml /app/
-COPY ./src/backend/base/README.md ./src/backend/base/uv.lock ./src/backend/base/pyproject.toml /app/src/backend/base/
+COPY ./src/backend/base/README.md ./src/backend/base/pyproject.toml /app/src/backend/base/
 COPY ./src/lfx/README.md ./src/lfx/pyproject.toml /app/src/lfx/
 COPY ./src/sdk/README.md ./src/sdk/pyproject.toml /app/src/sdk/
 
@@ -58,7 +58,7 @@ COPY ./src /app/src
 COPY ./src/frontend /tmp/src/frontend
 WORKDIR /tmp/src/frontend
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci \
+    for i in 1 2 3; do npm ci && break || (echo "npm ci attempt $i failed, retrying..."; sleep 10); done \
     && ESBUILD_BINARY_PATH="" NODE_OPTIONS="--max-old-space-size=4096" JOBS=1 npm run build \
     && cp -r build /app/src/backend/langflow/frontend \
     && rm -rf /tmp/src/frontend
@@ -79,6 +79,13 @@ RUN --mount=type=cache,target=/root/.cache/uv \
       uv pip install --python /app/.venv \
           ./src/backend/langflow-keycloak-sso; \
     fi
+
+# ── Extra packages (not in uv.lock: polars, mysql-connector; pymilvus version pin) ──
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install --python /app/.venv \
+        "polars>=1,<2" \
+        "mysql-connector-python>=9,<10" \
+        "pymilvus>=2.6.7,<2.6.10"
 
 ################################
 # RUNTIME
@@ -105,6 +112,10 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 RUN mkdir -p /app/data && chown -R 1000:0 /app/data && chown 1000:0 /app
 
+# ── Tiktoken cache (air-gapped 환경용) ──────────────────────────────────────
+COPY docker/tiktoken_cache /app/tiktoken_cache
+ENV TIKTOKEN_CACHE_DIR=/app/tiktoken_cache
+
 LABEL org.opencontainers.image.title="langflow-keycloak-sso"
 LABEL org.opencontainers.image.description="Langflow with Keycloak SSO plugin"
 LABEL org.opencontainers.image.licenses=MIT
@@ -116,6 +127,10 @@ WORKDIR /app
 ENV LANGFLOW_HOST=0.0.0.0
 ENV LANGFLOW_PORT=7860
 ENV LANGFLOW_AUTO_LOGIN=false
+# LiteLLM이 GitHub에서 원격 모델 비용 맵을 가져오지 않도록 설정 (SSL 차단 환경 대응)
+ENV LITELLM_LOCAL_MODEL_COST_MAP=True
+# air-gapped 환경에서 외부 Store API 호출 차단
+ENV LANGFLOW_STORE_URL=
 
 # ── Keycloak SSO defaults (only meaningful when INSTALL_SSO=true) ─────────────
 ARG INSTALL_SSO=true
