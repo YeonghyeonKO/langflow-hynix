@@ -66,6 +66,13 @@ const getPlaceholder = (
   }
 
   if (
+    (providerLower === "vllm" || providerLower === "vllm embeddings") &&
+    name.includes("url")
+  ) {
+    return "http://vllm-server:8000";
+  }
+
+  if (
     name.includes("api key") ||
     name.includes("apikey") ||
     name.includes("token")

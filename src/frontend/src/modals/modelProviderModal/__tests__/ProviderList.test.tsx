@@ -25,26 +25,28 @@ jest.mock("@/components/common/loadingTextComponent", () => ({
   ),
 }));
 
-// Mock provider data
+// Mock provider data — only ALLOWED_PROVIDERS (vllm, vllm embeddings, ollama)
 const mockProviders = [
   {
-    provider: "OpenAI",
-    icon: "Bot",
+    provider: "Ollama",
+    icon: "Ollama",
     is_enabled: true,
     models: [
-      { model_name: "gpt-4", metadata: { model_type: "llm" } },
-      { model_name: "gpt-3.5-turbo", metadata: { model_type: "llm" } },
-      {
-        model_name: "text-embedding-ada-002",
-        metadata: { model_type: "embeddings" },
-      },
+      { model_name: "llama3", metadata: { model_type: "llm" } },
+      { model_name: "nomic-embed-text", metadata: { model_type: "embeddings" } },
     ],
   },
   {
-    provider: "Anthropic",
-    icon: "Brain",
+    provider: "vLLM",
+    icon: "vLLM",
     is_enabled: false,
-    models: [{ model_name: "claude-3", metadata: { model_type: "llm" } }],
+    models: [],
+  },
+  {
+    provider: "vLLM Embeddings",
+    icon: "vLLM",
+    is_enabled: false,
+    models: [],
   },
 ];
 
@@ -113,28 +115,61 @@ describe("ProviderList", () => {
       expect(screen.getByTestId("provider-list")).toBeInTheDocument();
     });
 
-    it("should render providers with all model types", () => {
+    it("should render all allowed providers with all model types", () => {
       render(<ProviderList modelType="all" />);
 
-      expect(screen.getByTestId("provider-item-OpenAI")).toBeInTheDocument();
-      expect(screen.getByTestId("provider-item-Anthropic")).toBeInTheDocument();
+      expect(screen.getByTestId("provider-item-Ollama")).toBeInTheDocument();
+      expect(screen.getByTestId("provider-item-vLLM")).toBeInTheDocument();
+      expect(
+        screen.getByTestId("provider-item-vLLM Embeddings"),
+      ).toBeInTheDocument();
     });
 
-    it("should filter providers by LLM model type", () => {
+    it("should filter LLM providers by model type", () => {
       render(<ProviderList modelType="llm" />);
 
-      // Both providers have LLM models
-      expect(screen.getByTestId("provider-item-OpenAI")).toBeInTheDocument();
-      expect(screen.getByTestId("provider-item-Anthropic")).toBeInTheDocument();
+      // All allowed providers appear (vLLM explicitly maps to llm type)
+      expect(screen.getByTestId("provider-item-Ollama")).toBeInTheDocument();
+      expect(screen.getByTestId("provider-item-vLLM")).toBeInTheDocument();
+      // vLLM Embeddings still renders with 0 llm models
+      expect(
+        screen.getByTestId("provider-item-vLLM Embeddings"),
+      ).toBeInTheDocument();
     });
 
-    it("should filter providers by embeddings model type", () => {
+    it("should filter embedding providers by model type", () => {
       render(<ProviderList modelType="embeddings" />);
 
-      // OpenAI has embedding models
-      expect(screen.getByTestId("provider-item-OpenAI")).toBeInTheDocument();
-      // Anthropic has no embedding models but still renders (shows "no models" alert)
-      expect(screen.getByTestId("provider-item-Anthropic")).toBeInTheDocument();
+      // All allowed providers appear (vLLM Embeddings explicitly maps to embeddings)
+      expect(screen.getByTestId("provider-item-Ollama")).toBeInTheDocument();
+      // vLLM still renders with 0 embedding models
+      expect(screen.getByTestId("provider-item-vLLM")).toBeInTheDocument();
+      expect(
+        screen.getByTestId("provider-item-vLLM Embeddings"),
+      ).toBeInTheDocument();
+    });
+
+    it("should exclude providers not in the allowed list", () => {
+      const useGetModelProvidersMock =
+        require("@/controllers/API/queries/models/use-get-model-providers").useGetModelProviders;
+      useGetModelProvidersMock.mockReturnValueOnce({
+        data: [
+          ...mockProviders,
+          { provider: "OpenAI", icon: "Bot", is_enabled: true, models: [] },
+          { provider: "Anthropic", icon: "Bot", is_enabled: true, models: [] },
+        ],
+        isLoading: false,
+        isFetching: false,
+      });
+
+      render(<ProviderList modelType="all" />);
+
+      expect(
+        screen.queryByTestId("provider-item-OpenAI"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("provider-item-Anthropic"),
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -146,19 +181,19 @@ describe("ProviderList", () => {
         <ProviderList modelType="all" onProviderSelect={onProviderSelect} />,
       );
 
-      screen.getByTestId("provider-item-OpenAI").click();
+      screen.getByTestId("provider-item-Ollama").click();
 
       expect(onProviderSelect).toHaveBeenCalled();
     });
 
     it("should pass selectedProviderName to items", () => {
-      render(<ProviderList modelType="all" selectedProviderName="OpenAI" />);
+      render(<ProviderList modelType="all" selectedProviderName="Ollama" />);
 
-      const openaiItem = screen.getByTestId("provider-item-OpenAI");
-      expect(openaiItem).toHaveAttribute("data-selected", "true");
+      const ollamaItem = screen.getByTestId("provider-item-Ollama");
+      expect(ollamaItem).toHaveAttribute("data-selected", "true");
 
-      const anthropicItem = screen.getByTestId("provider-item-Anthropic");
-      expect(anthropicItem).toHaveAttribute("data-selected", "false");
+      const vllmItem = screen.getByTestId("provider-item-vLLM");
+      expect(vllmItem).toHaveAttribute("data-selected", "false");
     });
   });
 
@@ -166,17 +201,17 @@ describe("ProviderList", () => {
     it("should render every provider when the query is empty", () => {
       render(<ProviderList modelType="all" query="" />);
 
-      expect(screen.getByTestId("provider-item-OpenAI")).toBeInTheDocument();
-      expect(screen.getByTestId("provider-item-Anthropic")).toBeInTheDocument();
+      expect(screen.getByTestId("provider-item-Ollama")).toBeInTheDocument();
+      expect(screen.getByTestId("provider-item-vLLM")).toBeInTheDocument();
     });
 
     it("should filter providers by case-insensitive substring match", () => {
-      render(<ProviderList modelType="all" query="ANTHROP" />);
+      render(<ProviderList modelType="all" query="OLLAMA" />);
 
       expect(
-        screen.queryByTestId("provider-item-OpenAI"),
+        screen.queryByTestId("provider-item-vLLM"),
       ).not.toBeInTheDocument();
-      expect(screen.getByTestId("provider-item-Anthropic")).toBeInTheDocument();
+      expect(screen.getByTestId("provider-item-Ollama")).toBeInTheDocument();
     });
 
     it("should show the no-results message when nothing matches", () => {
@@ -187,11 +222,11 @@ describe("ProviderList", () => {
     });
 
     it("should ignore leading and trailing whitespace in the query", () => {
-      render(<ProviderList modelType="all" query="  open  " />);
+      render(<ProviderList modelType="all" query="  vllm  " />);
 
-      expect(screen.getByTestId("provider-item-OpenAI")).toBeInTheDocument();
+      expect(screen.getByTestId("provider-item-vLLM")).toBeInTheDocument();
       expect(
-        screen.queryByTestId("provider-item-Anthropic"),
+        screen.queryByTestId("provider-item-Ollama"),
       ).not.toBeInTheDocument();
     });
   });
