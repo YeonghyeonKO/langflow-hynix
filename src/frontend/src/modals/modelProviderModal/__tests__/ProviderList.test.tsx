@@ -33,7 +33,10 @@ const mockProviders = [
     is_enabled: true,
     models: [
       { model_name: "llama3", metadata: { model_type: "llm" } },
-      { model_name: "nomic-embed-text", metadata: { model_type: "embeddings" } },
+      {
+        model_name: "nomic-embed-text",
+        metadata: { model_type: "embeddings" },
+      },
     ],
   },
   {
