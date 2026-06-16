@@ -46,6 +46,10 @@ COPY ./uv.lock ./README.md ./pyproject.toml /app/
 COPY ./src/backend/base/README.md ./src/backend/base/pyproject.toml /app/src/backend/base/
 COPY ./src/lfx/README.md ./src/lfx/pyproject.toml /app/src/lfx/
 COPY ./src/sdk/README.md ./src/sdk/pyproject.toml /app/src/sdk/
+COPY ./src/bundles/arxiv/README.md ./src/bundles/arxiv/pyproject.toml /app/src/bundles/arxiv/
+COPY ./src/bundles/duckduckgo/README.md ./src/bundles/duckduckgo/pyproject.toml /app/src/bundles/duckduckgo/
+COPY ./src/bundles/ibm/README.md ./src/bundles/ibm/pyproject.toml /app/src/bundles/ibm/
+COPY ./src/bundles/docling/README.md ./src/bundles/docling/pyproject.toml /app/src/bundles/docling/
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-install-project --no-editable \
