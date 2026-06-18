@@ -757,8 +757,12 @@ def replace_with_live_models(
         replaced = False
         for provider_dict in provider_models:
             if provider_dict.get("provider") == provider:
-                provider_dict["models"] = catalog_models
-                provider_dict["num_models"] = len(catalog_models)
+                # Only overwrite models when live fetch returned actual models.
+                # If the server is unreachable (empty list), keep the placeholder
+                # so the provider stays visible in the UI and enabled_models.
+                if catalog_models:
+                    provider_dict["models"] = catalog_models
+                    provider_dict["num_models"] = len(catalog_models)
                 replaced = True
                 break
 

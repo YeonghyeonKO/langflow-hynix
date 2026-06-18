@@ -606,6 +606,15 @@ async def get_enabled_models(
             # Store model status per provider (true/false)
             enabled_models[provider][model_name] = is_enabled
 
+    # Ensure every provider in MODEL_PROVIDER_METADATA appears in the response,
+    # even if get_unified_models_detailed returned no catalog entry for it.
+    # This mirrors the fallback loop in list_models and guarantees providers like
+    # vLLM are always present (possibly with an empty model dict when unconfigured).
+    all_metadata = get_model_provider_metadata()
+    for prov_name in all_metadata:
+        if prov_name not in enabled_models:
+            enabled_models[prov_name] = {}
+
     result = {
         "enabled_models": enabled_models,
     }
