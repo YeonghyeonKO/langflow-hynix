@@ -5,6 +5,87 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from lfx.base.models.model_metadata import LIVE_MODEL_PROVIDERS
+
+# Hardcoded variable definitions for vLLM Language and vLLM Embedding.
+# Duplicated here so the API works correctly even when the lfx package in the
+# container has stale provider names from a cached build layer.
+_VLLM_LANGUAGE_VARIABLES: list[dict] = [
+    {
+        "variable_name": "vLLM Language API Base URL",
+        "variable_key": "VLLM_API_BASE",
+        "required": True,
+        "is_secret": False,
+        "is_list": False,
+        "options": [],
+        "langchain_param": "base_url",
+        "component_metadata": {
+            "mapping_field": "vllm_base_url",
+            "required": False,
+            "advanced": True,
+            "info": "Falls back to VLLM_API_BASE environment variable",
+        },
+    },
+    {
+        "variable_name": "vLLM Language API Key",
+        "variable_key": "VLLM_API_KEY",
+        "required": False,
+        "is_secret": True,
+        "is_list": False,
+        "options": [],
+        "langchain_param": "api_key",
+        "component_metadata": {
+            "mapping_field": "api_key",
+            "required": False,
+            "advanced": True,
+            "info": "Falls back to VLLM_API_KEY environment variable",
+        },
+    },
+]
+
+_VLLM_EMBEDDING_VARIABLES: list[dict] = [
+    {
+        "variable_name": "vLLM Embedding API Base URL",
+        "variable_key": "VLLM_EMBEDDINGS_API_BASE",
+        "required": True,
+        "is_secret": False,
+        "is_list": False,
+        "options": [],
+        "langchain_param": "base_url",
+        "component_metadata": {
+            "mapping_field": "vllm_embeddings_base_url",
+            "required": False,
+            "advanced": True,
+            "info": "Falls back to VLLM_EMBEDDINGS_API_BASE environment variable",
+        },
+    },
+    {
+        "variable_name": "vLLM Embedding API Key",
+        "variable_key": "VLLM_EMBEDDINGS_API_KEY",
+        "required": False,
+        "is_secret": True,
+        "is_list": False,
+        "options": [],
+        "langchain_param": "api_key",
+        "component_metadata": {
+            "mapping_field": "api_key",
+            "required": False,
+            "advanced": True,
+            "info": "Falls back to VLLM_EMBEDDINGS_API_KEY environment variable (optional for local servers)",
+        },
+    },
+]
+
+# Map from canonical new name → (required_variable_key, variables list)
+_VLLM_PROVIDER_VARIABLES: dict[str, tuple[str, list[dict]]] = {
+    "vLLM Language": ("VLLM_API_BASE", _VLLM_LANGUAGE_VARIABLES),
+    "vLLM Embedding": ("VLLM_EMBEDDINGS_API_BASE", _VLLM_EMBEDDING_VARIABLES),
+}
+
+# Legacy → canonical rename map
+_VLLM_RENAME: dict[str, str] = {
+    "vLLM": "vLLM Language",
+    "vLLM Embeddings": "vLLM Embedding",
+}
 from lfx.base.models.model_utils import replace_with_live_models
 from lfx.base.models.unified_models import (
     get_model_provider_metadata,
@@ -298,7 +379,17 @@ async def get_model_provider_mapping() -> dict[str, list[dict]]:
     - options: Predefined options for dropdowns
     """
     metadata = get_model_provider_metadata()
-    return {provider: meta.get("variables", []) for provider, meta in metadata.items()}
+    result: dict[str, list[dict]] = {}
+    for provider, meta in metadata.items():
+        canonical = _VLLM_RENAME.get(provider, provider)
+        result[canonical] = meta.get("variables", [])
+
+    # Ensure correct variables are present for vLLM Language / vLLM Embedding
+    # regardless of what the lfx catalog returned under these keys.
+    for canonical, (_, variables) in _VLLM_PROVIDER_VARIABLES.items():
+        result[canonical] = variables
+
+    return result
 
 
 @router.get("/enabled_providers", status_code=200)
@@ -345,6 +436,13 @@ async def get_enabled_providers(
             provider_status[provider] = all_required_present
             if all_required_present:
                 enabled_providers.append(provider)
+
+        # Hardcode vLLM Language / vLLM Embedding — lfx catalog may use stale names
+        for canonical, (required_key, _) in _VLLM_PROVIDER_VARIABLES.items():
+            is_configured = required_key in all_variable_names
+            provider_status[canonical] = is_configured
+            if is_configured and canonical not in enabled_providers:
+                enabled_providers.append(canonical)
 
         result = {
             "enabled_providers": enabled_providers,
