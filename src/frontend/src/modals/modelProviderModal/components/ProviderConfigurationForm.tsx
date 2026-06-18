@@ -66,6 +66,13 @@ const getPlaceholder = (
   }
 
   if (
+    (providerLower === "vllm" || providerLower === "vllm embeddings") &&
+    name.includes("url")
+  ) {
+    return "http://localhost:8000";
+  }
+
+  if (
     name.includes("api key") ||
     name.includes("apikey") ||
     name.includes("token")
@@ -126,6 +133,12 @@ const ProviderConfigurationForm = ({
 
   const isSingleVariableProvider = providerVariables.length === 1;
 
+  // URL-based providers (all required vars are non-secret, e.g. vLLM) use
+  // "Connect" instead of "Save" to make the flow clearer.
+  const isConnectStyle =
+    providerVariables.filter((v) => v.required).length > 0 &&
+    providerVariables.filter((v) => v.required).every((v) => !v.is_secret);
+
   if (!selectedProvider) return null;
 
   return (
@@ -146,22 +159,30 @@ const ProviderConfigurationForm = ({
       </div>
       <span className="text-[13px] text-muted-foreground pt-1 pb-2">
         {requiresConfiguration ? (
-          <>
-            {t("modelProviders.configurePrefix")}{" "}
-            <span
-              className="underline cursor-pointer hover:text-primary"
-              onClick={() => {
-                if (selectedProvider.api_docs_url) {
-                  customOpenNewTab(selectedProvider.api_docs_url);
-                }
-              }}
-            >
-              {t("modelProviders.credentialsLink", {
-                provider: selectedProvider.provider,
-              })}
-            </span>{" "}
-            {t("modelProviders.toEnableModels")}
-          </>
+          isConnectStyle ? (
+            t("modelProviders.connectToEnable", {
+              provider: selectedProvider.provider,
+              defaultValue:
+                "Enter your {{provider}} server URL to load available models.",
+            })
+          ) : (
+            <>
+              {t("modelProviders.configurePrefix")}{" "}
+              <span
+                className="underline cursor-pointer hover:text-primary"
+                onClick={() => {
+                  if (selectedProvider.api_docs_url) {
+                    customOpenNewTab(selectedProvider.api_docs_url);
+                  }
+                }}
+              >
+                {t("modelProviders.credentialsLink", {
+                  provider: selectedProvider.provider,
+                })}
+              </span>{" "}
+              {t("modelProviders.toEnableModels")}
+            </>
+          )
         ) : (
           <>
             {t("modelProviders.activateToEnable", {
@@ -347,9 +368,17 @@ const ProviderConfigurationForm = ({
             >
               {validationFailed
                 ? t("modelProviders.retrySaveButton")
-                : isAlreadyConfigured
-                  ? t("modelProviders.replaceButton")
-                  : t("modelProviders.saveButton")}
+                : isConnectStyle
+                  ? isAlreadyConfigured
+                    ? t("modelProviders.reconnectButton", {
+                        defaultValue: "Reconnect",
+                      })
+                    : t("modelProviders.connectButton", {
+                        defaultValue: "Connect",
+                      })
+                  : isAlreadyConfigured
+                    ? t("modelProviders.replaceButton")
+                    : t("modelProviders.saveButton")}
             </Button>
           </div>
         </div>
