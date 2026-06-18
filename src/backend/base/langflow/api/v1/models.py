@@ -4,6 +4,7 @@ import json
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from lfx.base.models.model_metadata import LIVE_MODEL_PROVIDERS
 from lfx.base.models.model_utils import replace_with_live_models
 from lfx.base.models.unified_models import (
     get_model_provider_metadata,
@@ -612,6 +613,13 @@ async def get_enabled_models(
     # vLLM are always present (possibly with an empty model dict when unconfigured).
     all_metadata = get_model_provider_metadata()
     for prov_name in all_metadata:
+        if prov_name not in enabled_models:
+            enabled_models[prov_name] = {}
+
+    # Also explicitly ensure all LIVE_MODEL_PROVIDERS (vLLM, vLLM Embeddings, Ollama,
+    # IBM WatsonX, OpenRouter) are in the response — these providers rely on live model
+    # discovery and may have no static catalog entries.
+    for prov_name in LIVE_MODEL_PROVIDERS:
         if prov_name not in enabled_models:
             enabled_models[prov_name] = {}
 
