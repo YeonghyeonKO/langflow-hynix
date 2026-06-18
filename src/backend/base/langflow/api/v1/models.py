@@ -569,8 +569,13 @@ async def get_enabled_models(
     disabled_models = await _get_disabled_models(session=session, current_user=current_user)
     explicitly_enabled_models = await _get_enabled_models(session=session, current_user=current_user)
 
-    # Build model status based on provider enablement
-    enabled_models: dict[str, dict[str, bool]] = {}
+    # Build model status based on provider enablement.
+    # Pre-populate vLLM providers so they always appear even when unconfigured
+    # (no static catalog entries, live discovery only after VLLM_API_BASE is set).
+    enabled_models: dict[str, dict[str, bool]] = {
+        "vLLM": {},
+        "vLLM Embeddings": {},
+    }
 
     # Iterate through providers and their models
     for provider_dict in all_models_by_provider:
