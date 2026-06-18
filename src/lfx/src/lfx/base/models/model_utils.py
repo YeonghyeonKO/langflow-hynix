@@ -591,7 +591,7 @@ def fetch_live_vllm_models(user_id: UUID | str | None, model_type: str = "llm") 
 
         return [
             create_model_metadata(
-                provider="vLLM",
+                provider="vLLM Language",
                 name=name,
                 icon="vLLM",
                 model_type=model_type,
@@ -649,7 +649,7 @@ def fetch_live_vllm_embeddings_models(user_id: UUID | str | None, model_type: st
 
         return [
             create_model_metadata(
-                provider="vLLM Embeddings",
+                provider="vLLM Embedding",
                 name=name,
                 icon="vLLM",
                 model_type=model_type,
@@ -680,9 +680,9 @@ def get_live_models_for_provider(
     """
     if provider == "Ollama":
         return fetch_live_ollama_models(user_id, model_type)
-    if provider == "vLLM":
+    if provider == "vLLM Language":
         return fetch_live_vllm_models(user_id, model_type)
-    if provider == "vLLM Embeddings":
+    if provider == "vLLM Embedding":
         return fetch_live_vllm_embeddings_models(user_id, model_type)
     if provider == "IBM WatsonX":
         return fetch_live_watsonx_models(user_id, model_type)
@@ -732,17 +732,17 @@ def replace_with_live_models(
         if provider not in enabled_providers:
             continue
 
-        if provider in ("vLLM", "vLLM Embeddings"):
-            # vLLM is for LLM models, vLLM Embeddings is for embedding models.
+        if provider in ("vLLM Language", "vLLM Embedding"):
+            # vLLM Language is for LLM models, vLLM Embedding is for embedding models.
             # Skip providers that don't match the requested model type.
-            if model_type == "llm" and provider == "vLLM Embeddings":
+            if model_type == "llm" and provider == "vLLM Embedding":
                 continue
-            if model_type == "embeddings" and provider == "vLLM":
+            if model_type == "embeddings" and provider == "vLLM Language":
                 continue
-            # vLLM / vLLM Embeddings return all models regardless of type (no type distinction),
+            # vLLM Language / vLLM Embedding return all models regardless of type (no type distinction),
             # so fetch once to avoid duplicates.
-            # Default type: "embeddings" for vLLM Embeddings, "llm" for vLLM.
-            default_type = "embeddings" if provider == "vLLM Embeddings" else "llm"
+            # Default type: "embeddings" for vLLM Embedding, "llm" for vLLM Language.
+            default_type = "embeddings" if provider == "vLLM Embedding" else "llm"
             live_models = get_live_models_for_provider(user_id, provider, model_type or default_type)
         elif model_type is None:
             live_llm = get_live_models_for_provider(user_id, provider, "llm")

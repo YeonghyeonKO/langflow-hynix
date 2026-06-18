@@ -66,7 +66,7 @@ const getPlaceholder = (
   }
 
   if (
-    (providerLower === "vllm" || providerLower === "vllm embeddings") &&
+    (providerLower === "vllm language" || providerLower === "vllm embedding") &&
     name.includes("url")
   ) {
     return "http://localhost:8000";

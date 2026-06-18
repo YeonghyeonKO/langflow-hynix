@@ -9,7 +9,7 @@ import { Provider } from "./types";
 type ModelType = "llm" | "embeddings" | "all";
 
 // Hynix: Only show these providers in the UI
-const ALLOWED_PROVIDERS = ["vllm", "vllm embeddings", "ollama"];
+const ALLOWED_PROVIDERS = ["vllm language", "vllm embedding", "ollama"];
 
 export interface ProviderListProps {
   modelType: ModelType;
@@ -46,8 +46,8 @@ const ProviderList = ({
       .filter((provider) => matchesQuery(provider.provider))
       .map((provider) => {
         const providerLower = provider?.provider?.toLowerCase() ?? "";
-        const isVllm = providerLower === "vllm";
-        const isVllmEmbeddings = providerLower === "vllm embeddings";
+        const isVllm = providerLower === "vllm language";
+        const isVllmEmbeddings = providerLower === "vllm embedding";
         const matchingModels =
           provider?.models?.filter((model) => {
             if (modelType === "all") return true;

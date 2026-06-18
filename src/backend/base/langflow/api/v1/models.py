@@ -573,8 +573,8 @@ async def get_enabled_models(
     # Pre-populate vLLM providers so they always appear even when unconfigured
     # (no static catalog entries, live discovery only after VLLM_API_BASE is set).
     enabled_models: dict[str, dict[str, bool]] = {
-        "vLLM": {},
-        "vLLM Embeddings": {},
+        "vLLM Language": {},
+        "vLLM Embedding": {},
     }
 
     # Iterate through providers and their models
@@ -621,7 +621,7 @@ async def get_enabled_models(
         if prov_name not in enabled_models:
             enabled_models[prov_name] = {}
 
-    # Also explicitly ensure all LIVE_MODEL_PROVIDERS (vLLM, vLLM Embeddings, Ollama,
+    # Also explicitly ensure all LIVE_MODEL_PROVIDERS (vLLM Language, vLLM Embedding, Ollama,
     # IBM WatsonX, OpenRouter) are in the response — these providers rely on live model
     # discovery and may have no static catalog entries.
     for prov_name in LIVE_MODEL_PROVIDERS:

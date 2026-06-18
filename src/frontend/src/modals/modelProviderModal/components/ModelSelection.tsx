@@ -290,8 +290,8 @@ const ModelSelection = ({
 
   const isOllama = providerName?.toLowerCase() === "ollama";
   const isVllm =
-    providerName?.toLowerCase() === "vllm" ||
-    providerName?.toLowerCase() === "vllm embeddings";
+    providerName?.toLowerCase() === "vllm language" ||
+    providerName?.toLowerCase() === "vllm embedding";
   // Use the unfiltered availableModels for the empty-state check so an
   // ollama-no-models warning still fires when the search field happens to be
   // populated.

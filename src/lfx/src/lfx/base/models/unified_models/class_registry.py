@@ -52,7 +52,7 @@ EMBEDDING_PROVIDER_CLASS_MAPPING: dict[str, str] = {
     "OpenAI": "OpenAIEmbeddings",
     "Google Generative AI": "GoogleGenerativeAIEmbeddings",
     "Ollama": "OllamaEmbeddings",
-    "vLLM Embeddings": "OpenAIEmbeddings",
+    "vLLM Embedding": "OpenAIEmbeddings",
     "IBM WatsonX": "WatsonxEmbeddings",
     "IBM watsonx.ai": "WatsonxEmbeddings",  # Alias used by MODEL_PROVIDERS_DICT
 }
@@ -98,7 +98,7 @@ EMBEDDING_PARAM_MAPPINGS: dict[str, dict[str, str]] = {
         "space_id": "space_id",
         "request_timeout": "request_timeout",
     },
-    "vLLM Embeddings": {
+    "vLLM Embedding": {
         "model": "model",
         "api_key": "api_key",
         "api_base": "base_url",

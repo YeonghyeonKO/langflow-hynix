@@ -55,7 +55,7 @@ def create_model_metadata(
     )
 
 
-LIVE_MODEL_PROVIDERS: list[str] = ["Ollama", "IBM WatsonX", "OpenRouter", "vLLM", "vLLM Embeddings"]
+LIVE_MODEL_PROVIDERS: list[str] = ["Ollama", "IBM WatsonX", "OpenRouter", "vLLM Language", "vLLM Embedding"]
 
 # Provider metadata configuration
 # Defines the variables (credentials, URLs, etc.) required for each model provider
@@ -241,12 +241,12 @@ MODEL_PROVIDER_METADATA: dict[str, Any] = {
             "model_param": "model",
         },
     },
-    "vLLM": {
+    "vLLM Language": {
         "icon": "vLLM",
         "max_tokens_field_name": "max_tokens",
         "variables": [
             {
-                "variable_name": "vLLM API Base URL",
+                "variable_name": "vLLM Language API Base URL",
                 "variable_key": "VLLM_API_BASE",
                 "required": True,
                 "is_secret": False,
@@ -261,7 +261,7 @@ MODEL_PROVIDER_METADATA: dict[str, Any] = {
                 },
             },
             {
-                "variable_name": "vLLM API Key",
+                "variable_name": "vLLM Language API Key",
                 "variable_key": "VLLM_API_KEY",
                 "required": False,
                 "is_secret": True,
@@ -282,11 +282,11 @@ MODEL_PROVIDER_METADATA: dict[str, Any] = {
             "model_param": "model",
         },
     },
-    "vLLM Embeddings": {
+    "vLLM Embedding": {
         "icon": "vLLM",
         "variables": [
             {
-                "variable_name": "vLLM Embeddings API Base URL",
+                "variable_name": "vLLM Embedding API Base URL",
                 "variable_key": "VLLM_EMBEDDINGS_API_BASE",
                 "required": True,
                 "is_secret": False,
@@ -301,7 +301,7 @@ MODEL_PROVIDER_METADATA: dict[str, Any] = {
                 },
             },
             {
-                "variable_name": "vLLM Embeddings API Key",
+                "variable_name": "vLLM Embedding API Key",
                 "variable_key": "VLLM_EMBEDDINGS_API_KEY",
                 "required": False,
                 "is_secret": True,

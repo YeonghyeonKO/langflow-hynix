@@ -87,7 +87,7 @@ def get_llm(
     api_key = unified_models_module.get_api_key_for_provider(user_id, provider, api_key)
 
     # Validate API key (Ollama / vLLM don't require one)
-    if not api_key and provider not in {"Ollama", "vLLM", "vLLM Embeddings"}:
+    if not api_key and provider not in {"Ollama", "vLLM Language", "vLLM Embedding"}:
         # Bug 2 [P1] — Defensive guard: provider arriving as empty / None /
         # literal "Unknown" produces a nonsense error message (the worst
         # case being ``Unknown API key is required when using Unknown
@@ -160,7 +160,7 @@ def get_llm(
     # Build kwargs dynamically
     # vLLM doesn't require an API key but ChatOpenAI raises if none is
     # provided and OPENAI_API_KEY is unset. Pass a dummy value.
-    resolved_api_key = api_key or ("dummy" if provider in {"vLLM", "vLLM Embeddings"} else api_key)
+    resolved_api_key = api_key or ("dummy" if provider in {"vLLM Language", "vLLM Embedding"} else api_key)
     kwargs = {
         model_name_param: model_name,
         "streaming": stream,
@@ -267,7 +267,7 @@ def get_llm(
         if default_headers:
             kwargs["default_headers"] = default_headers
 
-    elif provider == "vLLM":
+    elif provider == "vLLM Language":
         # For vLLM, handle custom base_url with component > database > env var fallback
         base_url_param = metadata.get("base_url_param", "base_url")
 
@@ -312,7 +312,7 @@ def get_llm(
             list(provider_vars.keys()),
         )
 
-    if provider == "vLLM":
+    if provider == "vLLM Language":
         # Log full kwargs for debugging (mask api_key)
         debug_kwargs = dict(kwargs)
         ak = str(debug_kwargs.get(api_key_param, ""))
@@ -322,7 +322,7 @@ def get_llm(
     try:
         return model_class(**kwargs)
     except Exception as e:
-        if provider == "vLLM":
+        if provider == "vLLM Language":
             logger.error("vLLM model instantiation failed: %s", e)
         # If instantiation fails and it's WatsonX, provide additional context
         if provider in {"IBM WatsonX", "IBM watsonx.ai"} and ("url" in str(e).lower() or "project" in str(e).lower()):
@@ -391,7 +391,7 @@ def get_embeddings(
 
     # --- resolve API key -----------------------------------------------------
     api_key = unified_models_module.get_api_key_for_provider(user_id, provider, api_key)
-    if not api_key and provider not in {"Ollama", "vLLM", "vLLM Embeddings"}:
+    if not api_key and provider not in {"Ollama", "vLLM Language", "vLLM Embedding"}:
         provider_variable_map = unified_models_module.get_model_provider_variable_mapping()
         variable_name = provider_variable_map.get(provider, f"{provider.upper().replace(' ', '_')}_API_KEY")
         msg = (
@@ -443,7 +443,7 @@ def get_embeddings(
     if "api_key" in param_mapping:
         if api_key:
             kwargs[param_mapping["api_key"]] = api_key
-        elif provider in {"vLLM", "vLLM Embeddings"}:
+        elif provider in {"vLLM Language", "vLLM Embedding"}:
             kwargs[param_mapping["api_key"]] = "dummy"
 
     # Optional parameters - only add when both a value is supplied *and* the
@@ -519,12 +519,12 @@ def get_embeddings(
     # vLLM / vLLM Embeddings: disable tiktoken tokenization to avoid
     # downloading encoding files (fails in air-gapped environments).
     # vLLM handles its own context limits server-side.
-    if provider in {"vLLM", "vLLM Embeddings"}:
+    if provider in {"vLLM Language", "vLLM Embedding"}:
         kwargs["tiktoken_enabled"] = False
         kwargs["check_embedding_ctx_length"] = False
 
     # vLLM Embeddings: resolve base_url from stored variable
-    if provider == "vLLM Embeddings" and "api_base" in param_mapping:
+    if provider == "vLLM Embedding" and "api_base" in param_mapping:
         provider_vars = unified_models_module.get_all_variables_for_provider(user_id, provider)
         base_url_value = (
             _to_str(api_base)

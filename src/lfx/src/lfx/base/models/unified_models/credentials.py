@@ -505,7 +505,7 @@ def validate_model_provider_key(provider: str, variables: dict[str, str], model_
                 logger.warning(msg)
                 raise ValueError(msg) from e
 
-        elif provider == "vLLM":
+        elif provider == "vLLM Language":
             import requests
 
             base_url = variables.get("VLLM_API_BASE")
@@ -561,7 +561,7 @@ def validate_model_provider_key(provider: str, variables: dict[str, str], model_
                 logger.error(msg)
                 raise ValueError(msg) from e
 
-        elif provider == "vLLM Embeddings":
+        elif provider == "vLLM Embedding":
             import requests
 
             base_url = variables.get("VLLM_EMBEDDINGS_API_BASE")
@@ -652,12 +652,12 @@ def validate_model_provider_key(provider: str, variables: dict[str, str], model_
             logger.error(msg)
             raise ValueError(msg) from e
 
-        if provider == "vLLM":
+        if provider == "vLLM Language":
             msg = f"Failed to validate vLLM server: {e}"
             logger.error(msg)
             raise ValueError(msg) from e
 
-        if provider == "vLLM Embeddings":
+        if provider == "vLLM Embedding":
             msg = f"Failed to validate vLLM Embeddings server: {e}"
             logger.error(msg)
             raise ValueError(msg) from e
