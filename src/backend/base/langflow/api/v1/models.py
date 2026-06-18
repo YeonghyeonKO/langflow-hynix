@@ -232,6 +232,39 @@ async def list_models(
     configured_providers = {p for p, configured in provider_configured_status.items() if configured}
     replace_with_live_models(filtered_models, current_user.id, configured_providers, model_type)
 
+    # Normalize legacy provider names that the lfx catalog may still emit under old keys.
+    # "vLLM" → "vLLM Language", "vLLM Embeddings" → "vLLM Embedding"
+    _VLLM_RENAME = {"vLLM": "vLLM Language", "vLLM Embeddings": "vLLM Embedding"}
+    for _pd in filtered_models:
+        if _pd.get("provider") in _VLLM_RENAME:
+            _pd["provider"] = _VLLM_RENAME[_pd["provider"]]
+
+    # Guarantee vLLM Language / vLLM Embedding always appear in the list.
+    # These providers have no static catalog entries (live-discovery only), so
+    # they depend on the MODEL_PROVIDER_METADATA fallback loop above. If the lfx
+    # package in the container has stale names, the loop produces the wrong keys
+    # and the frontend ALLOWED_PROVIDERS filter won't match. Hardcoding here ensures
+    # the correct entries are always present regardless of lfx cache state.
+    _existing_providers = {p.get("provider") for p in filtered_models}
+    for _vllm_name, _vllm_api_key in (
+        ("vLLM Language", "VLLM_API_BASE"),
+        ("vLLM Embedding", "VLLM_EMBEDDINGS_API_BASE"),
+    ):
+        if _vllm_name not in _existing_providers:
+            _is_configured = provider_configured_status.get(_vllm_name, False)
+            _prov_models_status = enabled_models_map.get(_vllm_name, {})
+            _has_active = any(_prov_models_status.values())
+            filtered_models.append(
+                {
+                    "provider": _vllm_name,
+                    "icon": "vLLM",
+                    "models": [],
+                    "api_docs_url": "https://docs.vllm.ai/",
+                    "is_configured": _is_configured,
+                    "is_enabled": _has_active,
+                }
+            )
+
     # Sort providers:
     # 1. Provider with default model first
     # 2. Configured providers next
