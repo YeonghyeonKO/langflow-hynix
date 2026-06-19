@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { ENABLE_KNOWLEDGE_BASES } from "@/customization/feature-flags";
 import BaseModal from "@/modals/baseModal";
 import useFlowsManagerStore from "@/stores/flowsManagerStore";
@@ -20,6 +21,7 @@ export default function GetStartedComponent({
   loading,
   onFlowCreating,
 }: GetStartedComponentProps) {
+  const { t } = useTranslation();
   const examples = useFlowsManagerStore((state) => state.examples);
 
   const filteredExamples = examples.filter((example) => {
@@ -31,36 +33,36 @@ export default function GetStartedComponent({
     {
       bgImage: memoryChatbot,
       bgHorizontalImage: memoryChatbotHorizontal,
-      icon: "Cpu",
-      category: "반도체",
+      icon: "MessagesSquare",
+      category: t("templatesModal.prompting"),
       flow: filteredExamples.find(
-        (example) => example.name === "반도체 공정 도우미",
+        (example) => example.name_key === "basic_prompting",
       ),
     },
     {
       bgImage: vectorRag,
       bgHorizontalImage: vectorRagHorizontal,
-      icon: "FileSearch",
-      category: "문서검색",
+      icon: "Database",
+      category: t("templatesModal.rag"),
       flow: filteredExamples.find(
-        (example) => example.name === "사내 문서 검색",
+        (example) => example.name_key === "vector_store_rag",
       ),
     },
     {
       bgImage: multiAgent,
       bgHorizontalImage: multiAgentHorizontal,
-      icon: "BarChart3",
-      category: "데이터분석",
+      icon: "Bot",
+      category: t("templatesModal.agents"),
       flow: filteredExamples.find(
-        (example) => example.name === "데이터 분석 에이전트",
+        (example) => example.name_key === "simple_agent",
       ),
     },
   ];
 
   return (
     <div className="flex flex-1 flex-col gap-4 md:gap-8">
-      <BaseModal.Header description="SK하이닉스 맞춤형 템플릿으로 시작하세요. 반도체 공정, 문서 검색, 데이터 분석을 바로 활용할 수 있습니다.">
-        시작하기
+      <BaseModal.Header description={t("templatesModal.getStartedDescription")}>
+        {t("templatesModal.getStarted")}
       </BaseModal.Header>
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-3">
         {cardData.map((card, index) => (
