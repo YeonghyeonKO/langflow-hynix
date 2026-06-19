@@ -1,5 +1,7 @@
 import { useTranslation } from "react-i18next";
 import ForwardedIconComponent from "@/components/common/genericIconComponent";
+import { useUtilityStore } from "@/stores/utilityStore";
+import { formatFileSize } from "@/utils/stringManipulation";
 import { DBProviderInput } from "@/components/core/parameterRenderComponent/components/dbProviderInputComponent";
 import ModelInputComponent, {
   type ModelOption,
@@ -96,6 +98,7 @@ export function StepConfiguration({
   onMetadataPairsChange,
 }: StepConfigurationProps) {
   const { t } = useTranslation();
+  const maxFileSizeUpload = useUtilityStore((state) => state.maxFileSizeUpload);
   return (
     <div className="relative">
       <div className="flex flex-col">
@@ -250,7 +253,7 @@ export function StepConfiguration({
                 <span className="text-sm font-medium">
                   {t("knowledge.configureSources")}
                   <span className="text-xs text-muted-foreground ml-1">
-                    {t("knowledge.configureSourcesMaxSize")}
+                    {t("knowledge.configureSourcesMaxSize", { maxSize: formatFileSize(maxFileSizeUpload) })}
                   </span>
                 </span>
               </div>

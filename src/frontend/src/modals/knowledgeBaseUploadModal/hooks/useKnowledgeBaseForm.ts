@@ -18,6 +18,8 @@ import { useGetIngestionJobStatus } from "@/controllers/API/queries/knowledge-ba
 import { useGetModelProviders } from "@/controllers/API/queries/models/use-get-model-providers";
 import { useGetGlobalVariables } from "@/controllers/API/queries/variables";
 import useAlertStore from "@/stores/alertStore";
+import { useUtilityStore } from "@/stores/utilityStore";
+import { formatFileSize as formatBytes } from "@/utils/stringManipulation";
 import {
   type MetadataPair,
   metadataPairsToFormValue,
@@ -29,7 +31,6 @@ import {
   DEFAULT_SEPARATOR,
   KB_INGEST_EXTENSIONS,
   KB_NAME_REGEX,
-  MAX_TOTAL_FILE_SIZE,
 } from "../constants";
 import type {
   ChunkPreview,
@@ -84,6 +85,7 @@ export function useKnowledgeBaseForm({
     | "existingKnowledgeBaseNames"
   >) {
   const { t } = useTranslation();
+  const maxFileSizeUpload = useUtilityStore((state) => state.maxFileSizeUpload);
   const isAddSourcesMode = !!existingKnowledgeBase;
 
   // Wizard state
@@ -419,8 +421,10 @@ export function useKnowledgeBaseForm({
       }
     }
     const totalBytes = files.reduce((acc, file) => acc + file.size, 0);
-    if (totalBytes > MAX_TOTAL_FILE_SIZE) {
-      errors.files = t("knowledge.validationFileSizeLimit");
+    if (totalBytes > maxFileSizeUpload) {
+      errors.files = t("knowledge.validationFileSizeLimit", {
+        maxSize: formatBytes(maxFileSizeUpload),
+      });
     }
     const runMetadataValidation = validateMetadataPairs(metadataPairs);
     if (!runMetadataValidation.ok) {
