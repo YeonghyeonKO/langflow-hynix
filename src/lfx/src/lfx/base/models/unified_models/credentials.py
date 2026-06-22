@@ -508,13 +508,18 @@ def validate_model_provider_key(provider: str, variables: dict[str, str], model_
         elif provider == "vLLM Language":
             import requests
 
+            from lfx.utils.util import transform_localhost_url
+
             base_url = variables.get("VLLM_API_BASE")
             if not base_url:
                 msg = "Invalid vLLM API base URL"
                 logger.error(msg)
                 raise ValueError(msg)
 
-            base_url = base_url.rstrip("/")
+            # Rewrite host-loopback URLs so a vLLM server running on the host
+            # is reachable from inside the Langflow container — matches the
+            # live-fetch path in model_utils.py.
+            base_url = transform_localhost_url(base_url.rstrip("/")) or base_url.rstrip("/")
             models_url = f"{base_url}/models" if base_url.endswith("/v1") else f"{base_url}/v1/models"
             headers = {}
             api_key = variables.get("VLLM_API_KEY")
@@ -564,15 +569,18 @@ def validate_model_provider_key(provider: str, variables: dict[str, str], model_
         elif provider == "vLLM Embedding":
             import requests
 
+            from lfx.utils.util import transform_localhost_url
+
             base_url = variables.get("VLLM_EMBEDDINGS_API_BASE")
             if not base_url:
                 msg = "Invalid vLLM Embeddings API base URL"
                 logger.error(msg)
                 raise ValueError(msg)
 
-            # Validate URL format only — server may not be reachable at config time
-            # (e.g. running inside Docker where host network differs)
-            base_url = base_url.rstrip("/")
+            # Rewrite host-loopback URLs so a vLLM Embeddings server running
+            # on the host is reachable from inside the Langflow container —
+            # matches the live-fetch path in model_utils.py.
+            base_url = transform_localhost_url(base_url.rstrip("/")) or base_url.rstrip("/")
             models_url = f"{base_url}/models" if base_url.endswith("/v1") else f"{base_url}/v1/models"
             headers = {}
             api_key = variables.get("VLLM_EMBEDDINGS_API_KEY")
@@ -580,7 +588,9 @@ def validate_model_provider_key(provider: str, variables: dict[str, str], model_
                 headers["Authorization"] = f"Bearer {api_key}"
 
             try:
-                response = requests.get(models_url, headers=headers, timeout=5)
+                # verify=False mirrors the vLLM Language validation + live
+                # fetch paths so self-signed TLS endpoints behave consistently.
+                response = requests.get(models_url, headers=headers, timeout=5, verify=False)
                 if response.status_code in (401, 403):
                     msg = "Authentication failed for vLLM Embeddings server. Check VLLM_EMBEDDINGS_API_KEY."
                     logger.error(msg)
