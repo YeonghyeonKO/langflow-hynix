@@ -10,6 +10,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 from langchain_core.output_parsers import BaseOutputParser
 
 from lfx.base.constants import STREAM_INFO_TEXT
+from lfx.base.models.company_glossary import prepend_company_glossary
 from lfx.custom.custom_component.component import Component
 from lfx.field_typing import LanguageModel
 from lfx.inputs.inputs import BoolInput, InputTypes, MessageInput, MultilineInput
@@ -111,8 +112,11 @@ class LCModelComponent(Component):
 
     async def text_response(self) -> Message:
         output = self.build_model()
+        # Prepend the instance-wide company glossary (env-controlled). When
+        # the LANGFLOW_COMPANY_GLOSSARY env var is unset this is a no-op.
+        system_message = prepend_company_glossary(self.system_message)
         result = await self.get_chat_result(
-            runnable=output, stream=self.stream, input_value=self.input_value, system_message=self.system_message
+            runnable=output, stream=self.stream, input_value=self.input_value, system_message=system_message
         )
         self.status = result
         return result
