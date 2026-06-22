@@ -569,14 +569,23 @@ def fetch_live_vllm_models(user_id: UUID | str | None, model_type: str = "llm") 
     except (ValueError, Exception):  # noqa: BLE001
         api_key = None  # API key is optional for vLLM
 
-    try:
-        base_url = base_url.rstrip("/")
-        models_url = f"{base_url}/models" if base_url.endswith("/v1") else f"{base_url}/v1/models"
-        headers = {}
-        if api_key:
-            headers["Authorization"] = f"Bearer {api_key}"
+    # Resolve the URL the same way validation does: rewrite host-network
+    # localhost references to the docker-internal host so a vLLM server
+    # running on the host machine is reachable from inside the Langflow
+    # container. Without this the live fetch silently returns []
+    # while validation (which uses the same transform) succeeds.
+    base_url = transform_localhost_url(base_url.rstrip("/")) or base_url.rstrip("/")
+    models_url = f"{base_url}/models" if base_url.endswith("/v1") else f"{base_url}/v1/models"
+    headers = {"Accept": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
 
-        response = requests.get(models_url, headers=headers, timeout=5)
+    try:
+        # verify=False mirrors the validation path (credentials.py) so a vLLM
+        # endpoint with a self-signed TLS cert behaves consistently between
+        # the Connect button and the model picker. Without this, validation
+        # accepted the URL but the live fetch failed on cert verification.
+        response = requests.get(models_url, headers=headers, timeout=10, verify=False)
         response.raise_for_status()
         data = response.json()
 
@@ -600,8 +609,8 @@ def fetch_live_vllm_models(user_id: UUID | str | None, model_type: str = "llm") 
             )
             for i, name in enumerate(model_names)
         ]
-    except Exception:  # noqa: BLE001
-        logger.debug(f"Could not fetch live vLLM {model_type} models from {base_url}")
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Could not fetch live vLLM %s models from %s: %s", model_type, models_url, e)
         return []
 
 
@@ -627,14 +636,14 @@ def fetch_live_vllm_embeddings_models(user_id: UUID | str | None, model_type: st
     except (ValueError, Exception):  # noqa: BLE001
         api_key = None  # API key is optional for vLLM
 
-    try:
-        base_url = base_url.rstrip("/")
-        models_url = f"{base_url}/models" if base_url.endswith("/v1") else f"{base_url}/v1/models"
-        headers = {}
-        if api_key:
-            headers["Authorization"] = f"Bearer {api_key}"
+    base_url = transform_localhost_url(base_url.rstrip("/")) or base_url.rstrip("/")
+    models_url = f"{base_url}/models" if base_url.endswith("/v1") else f"{base_url}/v1/models"
+    headers = {"Accept": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
 
-        response = requests.get(models_url, headers=headers, timeout=5)
+    try:
+        response = requests.get(models_url, headers=headers, timeout=10, verify=False)
         response.raise_for_status()
         data = response.json()
 
@@ -658,8 +667,8 @@ def fetch_live_vllm_embeddings_models(user_id: UUID | str | None, model_type: st
             )
             for i, name in enumerate(model_names)
         ]
-    except Exception:  # noqa: BLE001
-        logger.debug(f"Could not fetch live vLLM Embeddings {model_type} models from {base_url}")
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Could not fetch live vLLM Embeddings %s models from %s: %s", model_type, models_url, e)
         return []
 
 
