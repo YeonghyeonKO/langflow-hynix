@@ -30,6 +30,7 @@ if TYPE_CHECKING:
 from lfx.base.agents.agent import LCToolsAgentComponent
 from lfx.base.agents.callback import AgentAsyncHandler
 from lfx.base.agents.default_system_prompt import DEFAULT_SYSTEM_PROMPT_TEMPLATE
+from lfx.base.models.company_glossary import prepend_company_glossary
 from lfx.base.agents.events import ExceptionWithMessageError, process_agent_events
 from lfx.base.agents.token_callback import TokenUsageCallbackHandler
 from lfx.base.agents.utils import get_chat_output_sender_name
@@ -488,7 +489,10 @@ class AgentComponent(ToolCallingAgentComponent):
         }
         for placeholder, value in replacements.items():
             prompt = prompt.replace(placeholder, value)
-        return prompt
+        # Prepend the instance-wide company glossary (env-controlled). When the
+        # LANGFLOW_COMPANY_GLOSSARY env var is unset this is a no-op, so flows
+        # outside organizations that opted in see no behavioral change.
+        return prepend_company_glossary(prompt)
 
     def create_agent_runnable(self):
         """Build the LangGraph `CompiledStateGraph` via `langchain.agents.create_agent`.
@@ -542,7 +546,10 @@ class AgentComponent(ToolCallingAgentComponent):
         return create_agent(
             model=llm,
             tools=tools,
-            system_prompt=self.system_prompt or "",
+            # Route through _inject_dynamic_prompt_values so this path picks up
+            # both the existing {current_date}/{model_name} replacements and
+            # the company-glossary prepend (see prepend_company_glossary).
+            system_prompt=self._inject_dynamic_prompt_values(self.system_prompt) or "",
             middleware=middleware or None,
         )
 
