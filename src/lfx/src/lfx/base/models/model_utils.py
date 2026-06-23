@@ -545,6 +545,54 @@ def fetch_live_watsonx_models(user_id: UUID | str | None, model_type: str = "llm
         return result
 
 
+def _parse_vllm_model_list(data: Any) -> list[str]:
+    """Extract model IDs from an OpenAI-compatible /v1/models response.
+
+    Handles the shapes we've seen across vLLM forks and OpenAI-compatible
+    gateways. The default OpenAI vLLM shape is::
+
+        {"object": "list", "data": [{"id": "name", ...}, ...]}
+
+    Additional permissive cases (kept defensive because the spec is loose in
+    the wild — internal vLLM gateways and proxies frequently rewrap):
+
+    - Top-level array of objects: ``[{"id": "name"}, ...]``
+    - Top-level array of strings: ``["name1", "name2"]``
+    - ``{"models": [...]}`` (some forks use ``models`` instead of ``data``)
+    - Per-entry ``id`` may be missing → fall back to ``name`` or ``model``
+    - Bare-string entries inside the list payload are treated as the id
+
+    Returns a sorted list of non-empty model id strings.
+    """
+
+    def _id_from_entry(entry: Any) -> str:
+        if isinstance(entry, str):
+            return entry.strip()
+        if isinstance(entry, dict):
+            for key in ("id", "name", "model"):
+                value = entry.get(key)
+                if value:
+                    return str(value).strip()
+        return ""
+
+    # Locate the list payload regardless of which key wraps it.
+    if isinstance(data, list):
+        entries = data
+    elif isinstance(data, dict):
+        for key in ("data", "models"):
+            value = data.get(key)
+            if isinstance(value, list):
+                entries = value
+                break
+        else:
+            return []
+    else:
+        return []
+
+    ids = [_id_from_entry(e) for e in entries]
+    return sorted({i for i in ids if i})
+
+
 def fetch_live_vllm_models(user_id: UUID | str | None, model_type: str = "llm") -> list[dict]:
     """Fetch live models from a vLLM server via OpenAI-compatible /v1/models API.
 
@@ -588,15 +636,14 @@ def fetch_live_vllm_models(user_id: UUID | str | None, model_type: str = "llm") 
         response = requests.get(models_url, headers=headers, timeout=10, verify=False)
         response.raise_for_status()
         data = response.json()
-
-        # Support both OpenAI-compatible format {"data": [{"id": "..."}]}
-        # and simple list format ["model1", "model2"]
-        if isinstance(data, list):
-            model_names = sorted(str(m) for m in data if m)
-        elif isinstance(data, dict) and "data" in data:
-            model_names = sorted(m.get("id", "") for m in data["data"] if m.get("id"))
+        model_names = _parse_vllm_model_list(data)
+        if model_names:
+            logger.info("vLLM Language live fetch parsed %d models from %s", len(model_names), models_url)
         else:
-            model_names = []
+            # Empty list on a 200 is suspicious enough to warn — it means the
+            # response shape didn't match any known schema, or the server is
+            # genuinely serving no models.
+            logger.warning("vLLM Language live fetch parsed 0 models from %s; response payload: %r", models_url, data)
 
         return [
             create_model_metadata(
@@ -646,15 +693,13 @@ def fetch_live_vllm_embeddings_models(user_id: UUID | str | None, model_type: st
         response = requests.get(models_url, headers=headers, timeout=10, verify=False)
         response.raise_for_status()
         data = response.json()
-
-        # Support both OpenAI-compatible format {"data": [{"id": "..."}]}
-        # and simple list format ["model1", "model2"]
-        if isinstance(data, list):
-            model_names = sorted(str(m) for m in data if m)
-        elif isinstance(data, dict) and "data" in data:
-            model_names = sorted(m.get("id", "") for m in data["data"] if m.get("id"))
+        model_names = _parse_vllm_model_list(data)
+        if model_names:
+            logger.info("vLLM Embedding live fetch parsed %d models from %s", len(model_names), models_url)
         else:
-            model_names = []
+            logger.warning(
+                "vLLM Embedding live fetch parsed 0 models from %s; response payload: %r", models_url, data
+            )
 
         return [
             create_model_metadata(
