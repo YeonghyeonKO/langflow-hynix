@@ -20,9 +20,10 @@ async def fetch_allowed_employees(hcp_api_url: str, timeout: int = 10) -> set[st
     async with httpx.AsyncClient() as client:
         resp = await client.get(hcp_api_url, timeout=timeout)
 
-    if resp.status_code != 200:
+    if resp.status_code != 200:  # noqa: PLR2004
         logger.error("HCP roles API returned %s: %s", resp.status_code, resp.text)
-        raise ValueError(f"HCP roles API returned {resp.status_code}")
+        msg = f"HCP roles API returned {resp.status_code}"
+        raise ValueError(msg)
 
     data = resp.json()
     response_body = data.get("response", {})

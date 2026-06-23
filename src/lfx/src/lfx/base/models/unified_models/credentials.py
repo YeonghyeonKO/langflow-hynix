@@ -198,7 +198,9 @@ def get_all_variables_for_provider(user_id: UUID | str | None, provider: str) ->
                 except (ValueError, Exception) as e:  # noqa: BLE001
                     logger.debug(
                         "get_all_variables_for_provider: %s lookup failed: %s(%s)",
-                        var_key, type(e).__name__, e,
+                        var_key,
+                        type(e).__name__,
+                        e,
                     )
                     # Variable not found - check environment, unless the request disables
                     # env fallback (keeps served flows isolated from process-wide credentials).
@@ -537,11 +539,11 @@ def validate_model_provider_key(provider: str, variables: dict[str, str], model_
             logger.info(
                 "vLLM validation: url=%s, api_key_prefix=%s",
                 models_url,
-                api_key[:8] + "..." if len(api_key) > 8 else "***",
+                api_key[:8] + "..." if len(api_key) > 8 else "***",  # noqa: PLR2004
             )
 
             try:
-                response = requests.get(models_url, headers=headers, timeout=5, verify=False)
+                response = requests.get(models_url, headers=headers, timeout=5, verify=False)  # noqa: S501
                 logger.info("vLLM validation response: status=%s", response.status_code)
                 if response.status_code in (401, 403):
                     msg = (
