@@ -400,6 +400,117 @@ async def _fetch_enabled_providers_for_user(user_id: UUID | str) -> set[str]:
         return _validate_and_get_enabled_providers(all_provider_variables, provider_variable_map)
 
 
+def _validate_vllm_endpoint(
+    base_url: str,
+    api_key: str | None,
+    *,
+    provider_label: str,
+    key_var_name: str,
+) -> None:
+    """Two-step probe against a vLLM ``/v1/models`` endpoint.
+
+    The previous single-shot validation only checked status codes. If the
+    server didn't enforce auth on ``/v1/models`` (a common config — some
+    operators leave the model list endpoint open for discoverability), any
+    key returned 200 and validation silently passed. A wrong key landed in
+    the DB and the picker downstream broke for unrelated reasons, making
+    debugging painful.
+
+    The two-step probe makes the key check meaningful:
+
+    1. Probe ``/v1/models`` **without** auth. The status tells us whether
+       the server enforces auth on this endpoint.
+    2. If step 1 returned ``401`` / ``403`` the server enforces auth → the
+       user must have supplied a key, and that key must also produce a 2xx
+       response. Wrong keys now fail validation reliably.
+    3. If step 1 returned ``2xx`` the server doesn't enforce auth on this
+       endpoint — we can't verify the key from here, so we accept and log
+       an info-level breadcrumb. Operators wanting strict auth must enable
+       it on the upstream server.
+    """
+    import requests
+
+    from lfx.utils.util import transform_localhost_url
+
+    if not base_url:
+        msg = f"Invalid {provider_label} API base URL"
+        logger.error(msg)
+        raise ValueError(msg)
+
+    # transform_localhost_url so a host-loopback URL is reachable from inside
+    # the container — matches the live-fetch path in model_utils.py.
+    base_url = transform_localhost_url(base_url.rstrip("/")) or base_url.rstrip("/")
+    models_url = f"{base_url}/models" if base_url.endswith("/v1") else f"{base_url}/v1/models"
+
+    try:
+        # Step 1 — probe without auth.
+        unauth = requests.get(models_url, timeout=5, verify=False)
+        logger.info(
+            "%s validation step 1 (no auth): url=%s status=%s",
+            provider_label,
+            models_url,
+            unauth.status_code,
+        )
+
+        if unauth.status_code in (401, 403):
+            # Server enforces auth; the user's key MUST work.
+            if not api_key:
+                msg = (
+                    f"{provider_label} server requires an API key but none was provided. "
+                    f"Set {key_var_name}."
+                )
+                logger.error(msg)
+                raise ValueError(msg)
+
+            auth_response = requests.get(
+                models_url,
+                headers={"Authorization": f"Bearer {api_key}"},
+                timeout=5,
+                verify=False,
+            )
+            logger.info(
+                "%s validation step 2 (with auth): status=%s",
+                provider_label,
+                auth_response.status_code,
+            )
+            if auth_response.status_code in (401, 403):
+                msg = (
+                    f"Authentication failed for {provider_label} server "
+                    f"(status={auth_response.status_code}). The provided "
+                    f"{key_var_name} was rejected by {models_url}."
+                )
+                logger.error(msg)
+                raise ValueError(msg)
+            auth_response.raise_for_status()
+            return
+
+        # Step 1 succeeded — server doesn't enforce auth on /v1/models.
+        # We cannot meaningfully verify the key from this endpoint.
+        unauth.raise_for_status()
+        if api_key:
+            logger.info(
+                "%s server at %s does not enforce auth on /v1/models — the "
+                "provided %s could not be verified at this endpoint.",
+                provider_label,
+                base_url,
+                key_var_name,
+            )
+    except requests.ConnectionError as e:
+        msg = (
+            f"Could not connect to {provider_label} server at {base_url}. "
+            "Please check that the server is running and the URL is correct."
+        )
+        logger.error(msg)
+        raise ValueError(msg) from e
+    except requests.Timeout as e:
+        msg = (
+            f"Connection to {provider_label} server at {base_url} timed out. "
+            "Please check that the server is running and responsive."
+        )
+        logger.error(msg)
+        raise ValueError(msg) from e
+
+
 def validate_model_provider_key(provider: str, variables: dict[str, str], model_name: str | None = None) -> None:
     """Validate a model provider by making a minimal test call."""
     if not provider:
@@ -506,110 +617,20 @@ def validate_model_provider_key(provider: str, variables: dict[str, str], model_
                 raise ValueError(msg) from e
 
         elif provider == "vLLM Language":
-            import requests
-
-            from lfx.utils.util import transform_localhost_url
-
-            base_url = variables.get("VLLM_API_BASE")
-            if not base_url:
-                msg = "Invalid vLLM API base URL"
-                logger.error(msg)
-                raise ValueError(msg)
-
-            # Rewrite host-loopback URLs so a vLLM server running on the host
-            # is reachable from inside the Langflow container — matches the
-            # live-fetch path in model_utils.py.
-            base_url = transform_localhost_url(base_url.rstrip("/")) or base_url.rstrip("/")
-            models_url = f"{base_url}/models" if base_url.endswith("/v1") else f"{base_url}/v1/models"
-            headers = {}
-            api_key = variables.get("VLLM_API_KEY")
-            if api_key:
-                headers["Authorization"] = f"Bearer {api_key}"
-
-            # Skip full API validation if API key is not available.
-            # This avoids a race condition when the frontend saves
-            # VLLM_API_BASE and VLLM_API_KEY in parallel — the base URL
-            # save may read the OLD key from DB before the key save commits.
-            if not api_key:
-                logger.info("vLLM validation: skipping API call (no API key available), url=%s", models_url)
-                return
-
-            logger.info(
-                "vLLM validation: url=%s, api_key_prefix=%s",
-                models_url,
-                api_key[:8] + "..." if len(api_key) > 8 else "***",
+            _validate_vllm_endpoint(
+                variables.get("VLLM_API_BASE", ""),
+                variables.get("VLLM_API_KEY"),
+                provider_label="vLLM Language",
+                key_var_name="VLLM_API_KEY",
             )
 
-            try:
-                response = requests.get(models_url, headers=headers, timeout=5, verify=False)
-                logger.info("vLLM validation response: status=%s", response.status_code)
-                if response.status_code in (401, 403):
-                    msg = (
-                        f"Authentication failed for vLLM server (status={response.status_code}). "
-                        f"URL: {models_url}. Check VLLM_API_KEY."
-                    )
-                    logger.error(msg)
-                    raise ValueError(msg)
-                response.raise_for_status()
-            except requests.ConnectionError as e:
-                msg = (
-                    f"Could not connect to vLLM server at {base_url}. "
-                    "Please check that the server is running and the URL is correct."
-                )
-                logger.error(msg)
-                raise ValueError(msg) from e
-            except requests.Timeout as e:
-                msg = (
-                    f"Connection to vLLM server at {base_url} timed out. "
-                    "Please check that the server is running and responsive."
-                )
-                logger.error(msg)
-                raise ValueError(msg) from e
-
         elif provider == "vLLM Embedding":
-            import requests
-
-            from lfx.utils.util import transform_localhost_url
-
-            base_url = variables.get("VLLM_EMBEDDINGS_API_BASE")
-            if not base_url:
-                msg = "Invalid vLLM Embeddings API base URL"
-                logger.error(msg)
-                raise ValueError(msg)
-
-            # Rewrite host-loopback URLs so a vLLM Embeddings server running
-            # on the host is reachable from inside the Langflow container —
-            # matches the live-fetch path in model_utils.py.
-            base_url = transform_localhost_url(base_url.rstrip("/")) or base_url.rstrip("/")
-            models_url = f"{base_url}/models" if base_url.endswith("/v1") else f"{base_url}/v1/models"
-            headers = {}
-            api_key = variables.get("VLLM_EMBEDDINGS_API_KEY")
-            if api_key:
-                headers["Authorization"] = f"Bearer {api_key}"
-
-            try:
-                # verify=False mirrors the vLLM Language validation + live
-                # fetch paths so self-signed TLS endpoints behave consistently.
-                response = requests.get(models_url, headers=headers, timeout=5, verify=False)
-                if response.status_code in (401, 403):
-                    msg = "Authentication failed for vLLM Embeddings server. Check VLLM_EMBEDDINGS_API_KEY."
-                    logger.error(msg)
-                    raise ValueError(msg)
-                response.raise_for_status()
-            except requests.ConnectionError as e:
-                msg = (
-                    f"Could not connect to vLLM Embeddings server at {base_url}. "
-                    "Please check that the server is running and the URL is correct."
-                )
-                logger.error(msg)
-                raise ValueError(msg) from e
-            except requests.Timeout as e:
-                msg = (
-                    f"Connection to vLLM Embeddings server at {base_url} timed out. "
-                    "Please check that the server is running and responsive."
-                )
-                logger.error(msg)
-                raise ValueError(msg) from e
+            _validate_vllm_endpoint(
+                variables.get("VLLM_EMBEDDINGS_API_BASE", ""),
+                variables.get("VLLM_EMBEDDINGS_API_KEY"),
+                provider_label="vLLM Embeddings",
+                key_var_name="VLLM_EMBEDDINGS_API_KEY",
+            )
 
         elif provider == "Ollama":
             import requests
