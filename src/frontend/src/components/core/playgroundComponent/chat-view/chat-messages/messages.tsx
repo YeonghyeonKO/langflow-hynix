@@ -1,5 +1,5 @@
 import { Loader2 } from "lucide-react";
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 import { SafariScrollFix } from "@/components/common/safari-scroll-fix";
 import useFlowStore from "@/stores/flowStore";
@@ -25,40 +25,159 @@ const LoadMoreTrigger = ({
 }: {
   hasMore: boolean;
   isLoadingMore: boolean;
-  onLoadMore: () => void;
+  onLoadMore: () => Promise<number>;
 }) => {
   const { scrollRef } = useStickToBottomContext();
   const sentinelRef = useRef<HTMLDivElement>(null);
+  // The element that actually scrolls the chat. Depending on the surrounding
+  // layout, use-stick-to-bottom's scrollRef can end up as a full-height,
+  // non-scrolling element while an ancestor does the scrolling. Using that
+  // element as the IntersectionObserver root makes the sentinel intersect
+  // permanently (the root's box spans the whole content), so the observer
+  // fires exactly once and pagination dies — resolve the real scroll parent
+  // from the sentinel instead.
+  const containerRef = useRef<HTMLElement | null>(null);
+  // Guards a load in progress. Local to the effect chain so a chained load
+  // can proceed without waiting for the isLoadingMore state to flush.
+  const loadingRef = useRef(false);
+  // The sentinel sits at the top of the list, so it can be visible while the
+  // playground opens — before the view is pinned to the bottom. Loading in
+  // that window cascades through the entire history on open. Only arm
+  // pagination once the list overflows and the view has actually landed at
+  // the bottom; after that, loads can only be triggered by scrolling up.
+  const armedRef = useRef(false);
 
   // Keep stable refs to avoid recreating the observer on every render
   const hasMoreRef = useRef(hasMore);
   hasMoreRef.current = hasMore;
-  const isLoadingMoreRef = useRef(isLoadingMore);
-  isLoadingMoreRef.current = isLoadingMore;
   const onLoadMoreRef = useRef(onLoadMore);
   onLoadMoreRef.current = onLoadMore;
 
+  // Load a page, then restore scroll position so the newly prepended messages
+  // push the sentinel back out of view. use-stick-to-bottom applies
+  // `overflow-anchor: none`, so without this the sentinel stays visible, the
+  // IntersectionObserver never re-fires (no true->false->true transition), and
+  // pagination deadlocks after a single page. If the sentinel is still visible
+  // after restoring (short messages), chain another load.
+  const runLoad = useCallback(async () => {
+    const container = containerRef.current;
+    const sentinel = sentinelRef.current;
+    if (
+      !container ||
+      !sentinel ||
+      loadingRef.current ||
+      !hasMoreRef.current ||
+      !armedRef.current
+    ) {
+      return;
+    }
+
+    // Re-check with fresh geometry: observer entries can arrive after the
+    // initial pin-to-bottom has already pushed the sentinel out of view.
+    {
+      const cRect = container.getBoundingClientRect();
+      const sRect = sentinel.getBoundingClientRect();
+      const sentinelVisible =
+        sRect.bottom >= cRect.top && sRect.top <= cRect.bottom;
+      if (!sentinelVisible) {
+        return;
+      }
+    }
+
+    loadingRef.current = true;
+    try {
+      const prevHeight = container.scrollHeight;
+      const prevTop = container.scrollTop;
+
+      const loaded = await onLoadMoreRef.current();
+
+      if (loaded > 0) {
+        // Wait for the DOM to commit the prepended nodes before measuring.
+        await new Promise<void>((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+        });
+        const delta = container.scrollHeight - prevHeight;
+        container.scrollTop = prevTop + delta;
+
+        // If the sentinel is still within the viewport after restoring, keep
+        // loading so short content can't strand the user mid-history.
+        const cRect = container.getBoundingClientRect();
+        const sRect = sentinel.getBoundingClientRect();
+        if (
+          sRect.bottom >= cRect.top &&
+          sRect.top <= cRect.bottom &&
+          hasMoreRef.current
+        ) {
+          loadingRef.current = false;
+          void runLoad();
+          return;
+        }
+      }
+    } finally {
+      loadingRef.current = false;
+    }
+  }, []);
+
   useEffect(() => {
     const sentinel = sentinelRef.current;
-    const container = scrollRef.current;
-    if (!sentinel || !container) return;
+    if (!sentinel) return;
+
+    // Resolve the element that actually scrolls: nearest ancestor with a
+    // scrollable overflow-y that is really clipping its content. An ancestor
+    // can carry overflow-y:auto while its height grows with the content (so
+    // it never scrolls) — skip those, they are exactly the trap scrollRef
+    // falls into. Fall back to the first overflow-styled ancestor, then to
+    // stick-to-bottom's scrollRef.
+    let clipping: HTMLElement | null = null;
+    let styled: HTMLElement | null = null;
+    let parent: HTMLElement | null = sentinel.parentElement;
+    while (parent) {
+      const { overflowY } = getComputedStyle(parent);
+      if (
+        overflowY === "auto" ||
+        overflowY === "scroll" ||
+        overflowY === "overlay"
+      ) {
+        styled = styled ?? parent;
+        if (parent.scrollHeight > parent.clientHeight + 1) {
+          clipping = parent;
+          break;
+        }
+      }
+      parent = parent.parentElement;
+    }
+    const container = clipping ?? styled ?? scrollRef.current;
+    if (!container) return;
+    containerRef.current = container;
+
+    const checkArmed = () => {
+      if (armedRef.current) return;
+      const hasOverflow = container.scrollHeight > container.clientHeight;
+      const atBottom =
+        container.scrollTop + container.clientHeight >=
+        container.scrollHeight - 2;
+      if (hasOverflow && atBottom) {
+        armedRef.current = true;
+      }
+    };
+    checkArmed();
+    container.addEventListener("scroll", checkArmed, { passive: true });
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (
-          entries[0].isIntersecting &&
-          hasMoreRef.current &&
-          !isLoadingMoreRef.current
-        ) {
-          onLoadMoreRef.current();
+        if (entries[0].isIntersecting) {
+          void runLoad();
         }
       },
       { root: container, threshold: 0 },
     );
-
     observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [scrollRef]);
+
+    return () => {
+      container.removeEventListener("scroll", checkArmed);
+      observer.disconnect();
+    };
+  }, [scrollRef, runLoad]);
 
   if (!hasMore) return null;
 
@@ -89,8 +208,12 @@ export const Messages = ({
 
   // Show thinking placeholder when building and last message is from user (no bot response yet)
   // Only show if the flow has a ChatOutput, otherwise there's nothing to produce a response
-  const outputs = useFlowStore((state) => state.outputs);
-  const hasChatOutput = outputs.some((output) => output.type === "ChatOutput");
+  // Select the boolean, not the array: setNodes recreates `outputs` on every
+  // call (including node drags), and an array subscription would re-render
+  // the whole message list on each drag frame.
+  const hasChatOutput = useFlowStore((state) =>
+    state.outputs.some((output) => output.type === "ChatOutput"),
+  );
   const lastChat = chatHistory[chatHistory.length - 1];
   const showThinkingPlaceholder =
     isBuilding && lastChat?.isSend === true && hasChatOutput;

@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useGetFlowId } from "@/components/core/playgroundComponent/hooks/use-get-flow-id";
 import { api } from "@/controllers/API/api";
 import { getURL } from "@/controllers/API/helpers/constants";
@@ -18,9 +18,15 @@ export const useChatHistory = (visibleSession: string | null) => {
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
+  // Track how many messages we've fetched for the current session so pagination
+  // offset stays anchored to fetched count (not cache length, which drifts as
+  // live messages are appended via addUserMessage/updateMessage).
+  const offsetRef = useRef(0);
+
   // Reset pagination when session or flow changes
   useEffect(() => {
     setHasMore(true);
+    offsetRef.current = 0;
   }, [visibleSession, currentFlowId]);
 
   // Fetch messages from backend only when playground is visible and cap at 20
@@ -75,42 +81,67 @@ export const useChatHistory = (visibleSession: string | null) => {
         // Only initialize if cache is empty and we have backend messages for this session
         if (existingCache.length === 0 && backendMessages.length > 0) {
           queryClient.setQueryData(sessionCacheKey, backendMessages);
+          // Anchor the pagination offset to the number of messages actually
+          // fetched so the first loadMore continues from the right position.
+          offsetRef.current = backendMessages.length;
         }
       }
     }
   }, [queryData, queryClient, sessionCacheKey, currentFlowId, visibleSession]);
 
-  // Load older messages (scroll-up pagination)
-  const loadMore = useCallback(async () => {
-    if (isLoadingMore || !hasMore || !currentFlowId) return;
+  // Load older messages (scroll-up pagination).
+  // Returns the number of newly prepended messages so the caller can restore
+  // scroll position and decide whether to keep loading.
+  const loadMore = useCallback(async (): Promise<number> => {
+    if (isLoadingMore || !hasMore || !currentFlowId) return 0;
     setIsLoadingMore(true);
     try {
-      const existing =
-        queryClient.getQueryData<Message[]>(sessionCacheKey) || [];
-      const response = await api.get(`${getURL("MESSAGES")}`, {
-        params: {
-          flow_id: currentFlowId,
-          ...(visibleSession ? { session_id: visibleSession } : {}),
-          limit: 20,
-          offset: existing.length,
-        },
-      });
-      const olderMessages: Message[] = response.data || [];
+      // Loop until we prepend at least one new message or run out of pages.
+      // On remount (e.g. reopening the playground) offsetRef restarts at 0
+      // while the session cache may still hold previously loaded messages, so
+      // early pages can be fully swallowed by dedup; advancing through them
+      // keeps pagination from stalling on stale-cache pages.
+      let prepended = 0;
+      while (prepended === 0) {
+        const response = await api.get(`${getURL("MESSAGES")}`, {
+          params: {
+            flow_id: currentFlowId,
+            ...(visibleSession ? { session_id: visibleSession } : {}),
+            limit: 20,
+            offset: offsetRef.current,
+          },
+        });
+        const olderMessages: Message[] = response.data || [];
+        offsetRef.current += olderMessages.length;
 
-      if (olderMessages.length < 20) {
-        setHasMore(false);
-      }
+        const exhausted = olderMessages.length < 20;
+        if (exhausted) {
+          setHasMore(false);
+        }
 
-      if (olderMessages.length > 0) {
-        queryClient.setQueryData(sessionCacheKey, [
-          ...olderMessages,
-          ...existing,
-        ]);
-      } else {
-        setHasMore(false);
+        if (olderMessages.length > 0) {
+          const existing =
+            queryClient.getQueryData<Message[]>(sessionCacheKey) || [];
+          // Guard against duplicates: the initial seed comes from a flow-level
+          // (union) fetch while loadMore is session-scoped, so the coordinate
+          // systems can overlap. Drop anything already in the cache.
+          const existingIds = new Set(existing.map((m) => m.id));
+          const deduped = olderMessages.filter((m) => !existingIds.has(m.id));
+          if (deduped.length > 0) {
+            queryClient.setQueryData(sessionCacheKey, [
+              ...deduped,
+              ...existing,
+            ]);
+            prepended = deduped.length;
+          }
+        }
+
+        if (exhausted) break;
       }
+      return prepended;
     } catch (e) {
       console.error("Failed to load more messages:", e);
+      return 0;
     } finally {
       setIsLoadingMore(false);
     }
