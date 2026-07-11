@@ -1,0 +1,11 @@
+services:
+  dummy-vllm:
+    image: python:3.12-slim
+    working_dir: /app
+    volumes:
+      - ./server.py:/app/server.py
+    command: >
+      sh -c "pip install fastapi uvicorn --quiet && python server.py"
+    ports:
+      - "8000:8000"
+    restart: unless-stopped

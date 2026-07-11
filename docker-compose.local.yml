@@ -1,6 +1,7 @@
 services:
   langflow:
-    image: dk02315/langflow-hynix:v1.9.5-hynix-sso-rc11
+    image: ghcr.io/yeonghyeonko/langflow-hynix:v1.10.0-hynix-rc21
+    user: root
     ports:
       - "7860:7860"
     environment:
@@ -9,6 +10,8 @@ services:
       - LANGFLOW_SECRET_KEY=local-test-secret-key
       # 데이터 경로
       - LANGFLOW_CONFIG_DIR=/data
+      # DB를 마운트된 볼륨 안에 두지 않으면 컨테이너 recreate 시마다 변수가 사라짐
+      - LANGFLOW_DATABASE_URL=sqlite:////data/langflow.db
     volumes:
       - langflow_data:/data
     restart: unless-stopped
