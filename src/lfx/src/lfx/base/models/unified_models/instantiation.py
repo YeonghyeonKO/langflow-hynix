@@ -390,7 +390,19 @@ def get_embeddings(
         )
 
     # --- resolve API key -----------------------------------------------------
-    api_key = unified_models_module.get_api_key_for_provider(user_id, provider, api_key)
+    # vLLM providers declare their API *base URL* as the first (required, non-secret)
+    # variable and the API key as an optional secret. get_model_provider_variable_mapping()
+    # selects a provider's first *required secret* — vLLM has none — so it falls back to the
+    # first variable, the base URL. The generic get_api_key_for_provider() would then return
+    # VLLM_EMBEDDINGS_API_BASE as the api_key, producing an "Authorization: Bearer http://..."
+    # header. Resolve the real key variable directly for vLLM before the "dummy" fallback below.
+    # get_llm() already guards this for vLLM Language; get_embeddings() did not. See issue #33.
+    if provider in {"vLLM Language", "vLLM Embedding"} and not api_key:
+        key_name = "VLLM_EMBEDDINGS_API_KEY" if provider == "vLLM Embedding" else "VLLM_API_KEY"
+        provider_vars = unified_models_module.get_all_variables_for_provider(user_id, provider)
+        api_key = provider_vars.get(key_name) or _env_if_allowed(key_name)
+    else:
+        api_key = unified_models_module.get_api_key_for_provider(user_id, provider, api_key)
     if not api_key and provider not in {"Ollama", "vLLM Language", "vLLM Embedding"}:
         provider_variable_map = unified_models_module.get_model_provider_variable_mapping()
         variable_name = provider_variable_map.get(provider, f"{provider.upper().replace(' ', '_')}_API_KEY")
