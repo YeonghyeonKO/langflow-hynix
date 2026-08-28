@@ -697,9 +697,7 @@ def fetch_live_vllm_embeddings_models(user_id: UUID | str | None, model_type: st
         if model_names:
             logger.info("vLLM Embedding live fetch parsed %d models from %s", len(model_names), models_url)
         else:
-            logger.warning(
-                "vLLM Embedding live fetch parsed 0 models from %s; response payload: %r", models_url, data
-            )
+            logger.warning("vLLM Embedding live fetch parsed 0 models from %s; response payload: %r", models_url, data)
 
         return [
             create_model_metadata(
