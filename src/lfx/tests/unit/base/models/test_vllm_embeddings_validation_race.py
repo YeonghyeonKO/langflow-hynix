@@ -52,8 +52,9 @@ def test_sends_bearer_on_step_two_when_key_present():
 
 def test_still_raises_on_real_auth_failure_when_key_present():
     """Step 1 = 401, wrong key -> step 2 also 401 -> must raise."""
-    with patch("requests.get", side_effect=[_resp(401), _resp(401)]), pytest.raises(
-        ValueError, match="Authentication failed"
+    with (
+        patch("requests.get", side_effect=[_resp(401), _resp(401)]),
+        pytest.raises(ValueError, match="Authentication failed"),
     ):
         validate_model_provider_key(
             "vLLM Embedding",

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-
 from lfx.base.models.company_glossary import (
     EXAMPLE_COMPANY_GLOSSARY,
     get_company_glossary,
@@ -14,7 +13,8 @@ from lfx.base.models.company_glossary import (
 @pytest.fixture(autouse=True)
 def _clear_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """Each test starts with the glossary env var unset so the default-off
-    behavior is the explicit baseline."""
+    behavior is the explicit baseline.
+    """
     monkeypatch.delenv("LANGFLOW_COMPANY_GLOSSARY", raising=False)
 
 

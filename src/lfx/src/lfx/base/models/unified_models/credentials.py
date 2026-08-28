@@ -198,7 +198,9 @@ def get_all_variables_for_provider(user_id: UUID | str | None, provider: str) ->
                 except (ValueError, Exception) as e:  # noqa: BLE001
                     logger.debug(
                         "get_all_variables_for_provider: %s lookup failed: %s(%s)",
-                        var_key, type(e).__name__, e,
+                        var_key,
+                        type(e).__name__,
+                        e,
                     )
                     # Variable not found - check environment, unless the request disables
                     # env fallback (keeps served flows isolated from process-wide credentials).

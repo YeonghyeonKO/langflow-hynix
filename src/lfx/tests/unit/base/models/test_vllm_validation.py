@@ -12,7 +12,6 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
-
 from lfx.base.models.unified_models.credentials import _validate_vllm_endpoint
 
 
