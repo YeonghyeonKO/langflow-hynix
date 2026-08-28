@@ -481,6 +481,18 @@ def validate_model_provider_key(provider: str, variables: dict[str, str], model_
             if api_key:
                 headers["Authorization"] = f"Bearer {api_key}"
 
+            # Skip the API call when no key is available yet. The frontend saves
+            # VLLM_EMBEDDINGS_API_BASE and VLLM_EMBEDDINGS_API_KEY in parallel, and the
+            # base-URL save (the provider's primary variable, so the one that triggers
+            # validation) re-reads the key from the DB — which may not be committed yet.
+            # Without this guard an unauthenticated probe 401s and surfaces a spurious
+            # "Authentication failed" on the first attempt. Mirrors the vLLM Language
+            # guard above. A genuinely wrong key is still rejected on a later re-save
+            # (key present) and at runtime. See issue #34.
+            if not api_key:
+                logger.info("vLLM Embeddings validation: skipping API call (no API key available yet), url=%s", models_url)
+                return
+
             try:
                 response = requests.get(models_url, headers=headers, timeout=5)
                 if response.status_code in (401, 403):
