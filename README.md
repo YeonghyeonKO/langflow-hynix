@@ -10,7 +10,7 @@
 
 | 브랜치 | 역할 | 비고 |
 |--------|------|------|
-| `hynix/v1.9.5` | v1.9.5 + 커스텀 | **현행 (default)** |
+| `hynix/v1.9.4` | v1.9.4 + 커스텀 | **운영 (SSO RC)** |
 | `hynix/v1.9.1` | v1.9.1 + 커스텀 | 아카이브 |
 | `hynix/v1.9.0` | v1.9.0 + 커스텀 | 아카이브 |
 | `hynix/v1.8.4` | v1.8.4 + 커스텀 | 아카이브 |
@@ -20,7 +20,7 @@
 
 ## 커스텀 패치 목록
 
-커스텀 커밋 확인: `git log upstream/release-1.9.x..hynix/v1.9.5 --oneline`
+커스텀 커밋 확인: `git log upstream/release-1.9.x..hynix/v1.9.4 --oneline`
 
 ### Keycloak SSO
 - Keycloak SSO 플러그인 (`src/backend/langflow-keycloak-sso/`)
@@ -60,6 +60,8 @@
 - Language Model / Agent 컴포넌트에서 vLLM provider 선택 시 `base_url` 자동 해석 (component > DB > 환경변수)
 - provider 전환 시 stale API key 방지 (vLLM 전용 키 우선 사용)
 - provider 변수 개별 저장 시 validation race condition 수정
+- vLLM Embedding: API Base URL을 API key로 잘못 전송하던 문제 수정 ([#33](https://github.com/YeonghyeonKO/langflow-hynix/issues/33), commit `79252328ad`)
+- vLLM Embedding: 최초 저장 시 인증 실패("Authentication failed") 후 재시도해야 연결되던 문제 수정 — 저장 시점 validation race, 키 미저장 시 probe skip ([#34](https://github.com/YeonghyeonKO/langflow-hynix/issues/34), commit `84bab8df3b`)
 - air-gapped 환경 지원: tiktoken 비활성화, API key dummy fallback
 - 친절한 에러 메시지 (연결 실패, 인증 오류, 타임아웃 구분)
 
@@ -101,7 +103,7 @@ git fetch upstream --tags
 git checkout -b hynix/v1.10.0 upstream/release-1.10.0
 
 # 3. 최신 검증된 hynix 브랜치 머지
-git merge hynix/v1.9.5
+git merge hynix/v1.9.4
 
 # 4. 충돌 해결 → 테스트 → 태그 → Docker 빌드
 git tag v1.10.0-hynix-rc0
@@ -112,12 +114,12 @@ docker build -f docker/keycloak-sso.Dockerfile -t langflow-hynix:v1.10.0-hynix-r
 
 | 이미지 | 용도 |
 |--------|------|
-| `dk02315/langflow-hynix:v1.9.5-hynix-sso-rc11` | Backend (Keycloak SSO) — **최신** |
+| `dk02315/langflow-hynix:v1.9.4-hynix-sso-rc0` | Backend (Keycloak SSO) — **최신** |
 
 태그 push 시 GitHub Actions가 Docker 이미지를 자동 빌드합니다.
 
 ```bash
-docker pull dk02315/langflow-hynix:v1.9.5-hynix-sso-rc11
+docker pull dk02315/langflow-hynix:v1.9.4-hynix-sso-rc0
 ```
 
 ## Docker 실행
@@ -138,7 +140,7 @@ docker run -d -p 7860:7860 \
   -e LANGFLOW_DRM_ENABLED=true \
   -e LANGFLOW_DRM_DECRYPT_URL=http://drm-api.company.com/DRM/decrypt/file \
   -e LANGFLOW_DRM_GW_ROOT_KEY=<gw-root-key> \
-  dk02315/langflow-hynix:v1.9.5-hynix-sso-rc11
+  dk02315/langflow-hynix:v1.9.4-hynix-sso-rc0
 ```
 
 **SSO 로컬 테스트 (Keycloak + Mock HCP)**
@@ -165,7 +167,7 @@ docker compose -f docker/keycloak-sso.docker-compose.yml up -d
 ```bash
 helm install langflow-<사번> helm/langflow/ \
   --set empno=<사번> \
-  --set backend.image.ssoTag=v1.9.5-hynix-sso-rc11 \
+  --set backend.image.ssoTag=v1.9.4-hynix-sso-rc0 \
   --set keycloak.serverUrl=https://keycloak.company.com \
   --set keycloak.realm=company \
   --set keycloak.clientId=langflow \
