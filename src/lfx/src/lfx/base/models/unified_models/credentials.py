@@ -455,12 +455,19 @@ def _validate_vllm_endpoint(
         if unauth.status_code in (401, 403):
             # Server enforces auth; the user's key MUST work.
             if not api_key:
-                msg = (
-                    f"{provider_label} server requires an API key but none was provided. "
-                    f"Set {key_var_name}."
+                # No key available yet — almost always the parallel-save race: the
+                # frontend saves the vLLM base URL and API key concurrently, and the
+                # base-URL save (the provider's primary variable, so the one that
+                # triggers validation) re-reads the key from the DB before the key
+                # write commits. Skip rather than raise a spurious "requires an API
+                # key" that clears on retry. A genuinely missing key is still caught
+                # at runtime and on any later re-save once the key is present. The
+                # connectivity/open-server checks below are preserved. See issue #34.
+                logger.info(
+                    "%s validation: server enforces auth but no API key available yet — skipping probe",
+                    provider_label,
                 )
-                logger.error(msg)
-                raise ValueError(msg)
+                return
 
             auth_response = requests.get(
                 models_url,
