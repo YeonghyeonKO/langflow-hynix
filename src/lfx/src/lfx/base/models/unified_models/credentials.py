@@ -154,7 +154,9 @@ def get_all_variables_for_provider(user_id: UUID | str | None, provider: str) ->
                 except (ValueError, Exception) as e:  # noqa: BLE001
                     logger.warning(
                         "get_all_variables_for_provider: %s lookup failed: %s(%s)",
-                        var_key, type(e).__name__, e,
+                        var_key,
+                        type(e).__name__,
+                        e,
                     )
                     # Variable not found - check environment
                     env_value = os.environ.get(var_key)
@@ -490,7 +492,9 @@ def validate_model_provider_key(provider: str, variables: dict[str, str], model_
             # guard above. A genuinely wrong key is still rejected on a later re-save
             # (key present) and at runtime. See issue #34.
             if not api_key:
-                logger.info("vLLM Embeddings validation: skipping API call (no API key available yet), url=%s", models_url)
+                logger.info(
+                    "vLLM Embeddings validation: skipping API call (no API key available yet), url=%s", models_url
+                )
                 return
 
             try:
