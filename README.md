@@ -174,6 +174,154 @@ helm install langflow-<사번> helm/langflow/ \
   --set keycloak.clientSecret=<secret>
 ```
 
+## 플로우 백업 · 복구 (WSL + curl)
+
+인스턴스 초기화 전에 **본인이 만든 플로우를 직접 내려받아 보관**하는 방법입니다.
+사내망(VPN) 연결 상태에서 WSL 터미널을 열고 아래 순서대로 따라 하시면 됩니다.
+명령어는 복사해서 붙여넣기만 하면 되고, 값을 바꿔야 하는 곳은 모두 표시해 두었습니다.
+
+### 0. 준비물
+
+```bash
+sudo apt update && sudo apt install -y curl jq
+```
+
+`jq`는 JSON을 다루는 도구입니다. 이미 설치되어 있다면 그냥 넘어가셔도 됩니다.
+
+**API Key 발급**: 브라우저에서 본인 인스턴스 접속 → 우측 상단 **Settings** → **Langflow API Keys** → **Add New**
+→ 생성된 키는 **이때 한 번만 표시**되므로 반드시 즉시 복사해 두세요.
+
+### 1. 환경변수 설정
+
+`<사번>`과 `<발급받은키>` 두 곳만 본인 값으로 바꿔 주세요.
+
+```bash
+export EMPNO=<사번>
+export LF_URL="http://agentbuilder-${EMPNO}.abs01.skhynix.com"
+export LF_API_KEY="<발급받은키>"
+export LF_BACKUP_DIR="$HOME/langflow-backup"
+mkdir -p "$LF_BACKUP_DIR"
+```
+
+> 터미널을 새로 열면 위 설정이 사라집니다. 창을 닫았다면 이 단계부터 다시 실행해 주세요.
+
+### 2. 연결 확인 (30초)
+
+백업을 시작하기 전에 주소와 키가 올바른지 먼저 확인합니다.
+
+```bash
+curl -s -o /dev/null -w "HTTP %{http_code}\n" \
+  -H "x-api-key: ${LF_API_KEY}" \
+  "${LF_URL}/api/v1/users/whoami"
+```
+
+- `HTTP 200` → 정상입니다. 다음 단계로 진행하세요.
+- `HTTP 401` / `HTTP 403` → API Key가 잘못되었거나 만료되었습니다. 다시 발급받아 주세요.
+- 아무것도 출력되지 않거나 `Could not resolve host` → VPN/사내망 연결을 확인해 주세요.
+
+### 3. 전체 백업 (핵심 단계)
+
+```bash
+curl -s --compressed \
+  -H "x-api-key: ${LF_API_KEY}" \
+  "${LF_URL}/api/v1/flows/?get_all=true&remove_example_flows=true" \
+  | jq '{flows: .}' \
+  > "${LF_BACKUP_DIR}/flows-${EMPNO}-$(date +%Y%m%d).json"
+```
+
+> **`--compressed` 옵션을 절대 빼지 마세요.**
+> 서버가 응답을 항상 gzip으로 압축해서 보내기 때문에, 이 옵션이 없으면 읽을 수 없는
+> 깨진 바이너리 파일이 저장됩니다. 이 문제로 백업에 실패하는 경우가 가장 많습니다.
+
+`jq '{flows: .}'`로 감싸는 이유는, 이 형태 그대로 복구 API에 바로 넣을 수 있기 때문입니다.
+
+### 4. 백업 검증 (반드시 확인)
+
+파일이 생겼다고 끝이 아닙니다. **플로우 개수와 이름을 눈으로 확인**해 주세요.
+
+```bash
+# 백업된 플로우 개수
+jq '.flows | length' "${LF_BACKUP_DIR}"/flows-${EMPNO}-*.json
+
+# 백업된 플로우 이름 목록
+jq -r '.flows[].name' "${LF_BACKUP_DIR}"/flows-${EMPNO}-*.json
+```
+
+화면에서 보이던 플로우가 모두 나오는지 확인하세요.
+개수가 `0`이거나 빠진 플로우가 있다면 [문제 해결](#문제-해결) 표를 참고해 주세요.
+
+### 5. 플로우별 파일로 나누기 (선택)
+
+전체 파일 하나로도 충분하지만, 플로우를 하나씩 골라서 복구하고 싶다면 아래를 실행하세요.
+
+```bash
+cd "${LF_BACKUP_DIR}"
+jq -c '.flows[]' flows-${EMPNO}-*.json | while read -r flow; do
+  name=$(printf '%s' "$flow" | jq -r '.name' | tr -c '[:alnum:]._-' '_')
+  printf '%s' "$flow" > "${name}.json"
+  echo "저장 완료: ${name}.json"
+done
+```
+
+이렇게 만든 개별 파일은 Langflow 화면에 **드래그 앤 드롭**으로 바로 올릴 수 있습니다.
+
+### 6. Windows 쪽으로 파일 꺼내기
+
+WSL 안에만 두면 나중에 찾기 어렵습니다. 탐색기로 열어서 안전한 곳에 복사해 두세요.
+
+```bash
+explorer.exe "$(wslpath -w "$LF_BACKUP_DIR")"
+```
+
+탐색기 창이 열리면 파일을 바탕화면이나 개인 드라이브로 복사하시면 됩니다.
+
+### 7. 복구 방법
+
+초기화 후 새 인스턴스에서 API Key를 다시 발급받고, 1단계 환경변수를 다시 설정한 뒤 실행하세요.
+`<파일명>`은 실제 백업 파일 이름으로 바꿔 주세요.
+
+```bash
+curl -s -X POST \
+  -H "x-api-key: ${LF_API_KEY}" \
+  -F "file=@${LF_BACKUP_DIR}/<파일명>.json" \
+  "${LF_URL}/api/v1/flows/upload/" \
+  | jq -r '.[].name'
+```
+
+복구된 플로우 이름이 출력되면 성공입니다.
+같은 ID의 플로우가 이미 있으면 덮어쓰기(upsert)되므로 중복 걱정 없이 여러 번 실행해도 됩니다.
+
+터미널이 익숙하지 않다면, Langflow 화면에서 **Projects → 우측 상단 업로드 버튼**으로
+백업 JSON 파일을 올리셔도 결과는 같습니다.
+
+### 백업에 포함되지 않는 항목
+
+플로우 JSON에는 **설계 내용만** 담깁니다. 아래 항목은 별도로 메모해 두셔야 합니다.
+
+| 항목 | 이유 |
+|------|------|
+| Global Variables, 각종 API Key 등 자격증명 | `LANGFLOW_SECRET_KEY`로 암호화되어 저장되며 플로우 JSON에 포함되지 않음 |
+| File 컴포넌트로 업로드한 파일 | 별도 스토리지에 저장됨 |
+| Playground 채팅 히스토리 | 대화 기록은 백업 대상이 아님 |
+| MCP 서버 설정 | 인스턴스 설정에 저장됨 |
+
+> 복구 후 플로우를 열면 키 입력란이 비어 있을 수 있습니다. 이는 정상이며,
+> 값을 다시 입력하시면 그대로 동작합니다. **초기화 전에 필요한 키 값을 미리 확보해 두세요.**
+
+### 문제 해결
+
+| 증상 | 원인 | 해결 방법 |
+|------|------|-----------|
+| 저장된 파일이 깨진 글자로 보임 | `--compressed` 누락 | 3단계 명령에 `--compressed`를 넣고 다시 실행 |
+| `HTTP 401` / `HTTP 403` | API Key 오타 또는 만료 | Settings에서 키를 새로 발급받아 1단계부터 다시 |
+| `jq: command not found` | jq 미설치 | `sudo apt install -y jq` |
+| `Could not resolve host` | 사내망/VPN 미연결 | VPN 연결 후 재시도 |
+| 플로우 개수가 `0` | 예제 플로우만 있는 상태에서 `remove_example_flows=true` 적용 | 해당 파라미터를 빼고 다시 실행 |
+| `$'\r': command not found` | Windows 줄바꿈(CRLF)이 섞임 | 메모장 대신 WSL 터미널에 직접 붙여넣기, 또는 `dos2unix <파일>` |
+| `Permission denied` | 백업 폴더 권한 문제 | `mkdir -p "$LF_BACKUP_DIR"`를 다시 실행 |
+
+문제가 계속되면 위 명령의 출력 화면을 그대로 캡처해서 Agent Builder Channel로 문의해 주세요.
+
 ---
 
 <picture>
